@@ -279,7 +279,10 @@ if not hour_data.empty:
 
     insight1.metric(
         "Peak Dispatch Hour",
-        hour_label,
+        hour_label
+    )
+
+    insight1.caption(
         f"{busiest_hour_count:,} records"
     )
 
@@ -292,7 +295,10 @@ if not day_data.empty:
 
     insight2.metric(
         "Busiest Day",
-        busiest_day,
+        busiest_day
+    )
+
+    insight2.caption(
         f"{busiest_day_count:,} records"
     )
 
@@ -305,7 +311,10 @@ if not priority_data.empty:
 
     insight3.metric(
         "Most Common Priority",
-        f"Priority {common_priority}",
+        f"Priority {common_priority}"
+    )
+
+    insight3.caption(
         f"{common_priority_count:,} records"
     )
 
@@ -647,7 +656,7 @@ with right:
 
 
 # -------------------------------------------------
-# DATA COVERAGE
+# ABOUT THE DATA
 # -------------------------------------------------
 
 st.header("About the Data")
@@ -664,6 +673,10 @@ st.info(
     """
 )
 
+
+# -------------------------------------------------
+# DATA COVERAGE
+# -------------------------------------------------
 
 with st.expander("Data Coverage"):
     total_records = len(df)
