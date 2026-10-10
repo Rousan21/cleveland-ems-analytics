@@ -1,180 +1,122 @@
-# 🚑 Cleveland EMS Analytics
+# Cleveland EMS Analytics
 
-An end-to-end Python and SQL analytics project exploring patterns in public Cleveland EMS call data through an interactive Streamlit dashboard.
+**A deployed, end-to-end public-data analytics application built with Python, FastAPI, PostgreSQL, and automated ingestion.**
 
-![Cleveland EMS Analytics Dashboard](assets/dashboard.png)
+[**Explore the live dashboard ↗**](https://cleveland-ems-analytics.onrender.com/) · [FastAPI API docs](https://cleveland-ems-analytics.onrender.com/docs) · [View source data](https://www.arcgis.com/home/item.html?id=d5d71757cc73400d843c98bcb46e46b6)
 
-## Overview
+> **Independent educational project.** Not affiliated with or endorsed by Cleveland EMS. It analyzes published records, **not verified unique emergency incidents**. Call-to-event time intervals are exploratory and should not be interpreted as official EMS response-time performance measures.
 
-This project analyzes real-world Cleveland EMS data to explore when EMS activity occurs, how call priorities are distributed, and the time between key stages of an EMS call.
+## What it does
 
-I built the project as a way to connect my previous EMS experience with the Python, SQL, and data skills I am developing in computer science.
+An interactive dashboard for exploring the City of Cleveland's published emergency medical services data:
 
-The dashboard allows users to explore:
+- **Time filters:** past day, 7 days, 30 days, 3 months, 1 year, all imported records, or a custom date range.
+- **Priority filters:** explore published priority codes independently or together.
+- **Operational trends:** daily dispatch records, priority mix, and dispatch records by Cleveland-local hour.
+- **Timing analysis:** median call-to-dispatch and call-to-on-scene intervals for records with valid timestamps.
+- **Geographic overview:** official Cleveland neighborhood boundaries, shown as a clean vector map.
+- **Data freshness:** the date of the most recent successful import and the newest dispatch timestamp in the database.
 
-- EMS dispatch volume over time
-- Activity by hour of day
-- Activity by day of week
-- Call priority distribution
-- Call-to-dispatch intervals
-- Call-to-scene intervals
-- Missing and unusual data
-- Automatically generated key findings
+The application runs publicly on **Render** and stores data in **Neon PostgreSQL**. **GitHub Actions** retrieves newly published source rows each day, upserting by source `OBJECTID` so reruns don't create extra copies of existing source rows.
 
-## How It Works
-
-The project follows an end-to-end data pipeline:
+## Architecture
 
 ```text
-Cleveland EMS API
-        ↓
-Python requests
-        ↓
-pandas cleaning and transformation
-        ↓
-CSV
-        ↓
-SQLite
-        ↓
-SQL analysis
-        ↓
-Streamlit + Plotly dashboard
+City of Cleveland ArcGIS REST API
+              |
+         Python importer
+      (requests + SQLAlchemy)
+              |
+      Neon PostgreSQL database
+              |
+           FastAPI
+   /api/summary | /api/areas
+              |
+  HTML/CSS + Chart.js + Leaflet
+              |
+        Render web service
+
+GitHub Actions --> daily ingest + automated tests
 ```
 
-Python retrieves recent EMS records from a public API. The API response is converted into a pandas DataFrame, timestamps are cleaned and converted to local time, and additional analytical fields are created.
+**Technical stack:** Python 3.12 · FastAPI · SQLAlchemy · PostgreSQL (Neon) · Render · GitHub Actions · pytest · Chart.js · Leaflet · HTML/CSS/JavaScript · ArcGIS REST API.
 
-The processed data is then stored in SQLite and used by the Streamlit dashboard to generate interactive metrics and visualizations.
+## Live application
 
-## Dashboard
+**[Open Cleveland EMS Analytics](https://cleveland-ems-analytics.onrender.com/)**
 
-The dashboard includes:
+The dashboard provides real, date-filterable published-data analysis. Render's free tier can temporarily spin down when idle, so the first request after inactivity may take longer.
 
-- Interactive date and call-priority filters
-- Summary metrics
-- Automatically generated key findings
-- Daily dispatch-volume trends
-- Dispatch activity by hour
-- Dispatch activity by day of week
-- Priority-code percentages
-- Call-to-dispatch timing distributions
-- Call-to-scene timing distributions
-- Data-quality information
-- Sample records
+Useful endpoints:
+- [`/health`](https://cleveland-ems-analytics.onrender.com/health) — application readiness
+- [`/api/summary`](https://cleveland-ems-analytics.onrender.com/api/summary) — aggregated public statistics
+- [`/api/neighborhood-boundaries`](https://cleveland-ems-analytics.onrender.com/api/neighborhood-boundaries) — neighborhood outlines
+- [`/docs`](https://cleveland-ems-analytics.onrender.com/docs) — automatically generated FastAPI documentation
 
-The current dashboard analyzes several thousand recent EMS records while preserving incomplete records for analyses where their available fields are still useful.
+## Why the numbers are labeled “published records”
 
-## Technologies
+Real-world EMS source data has a nontrivial record structure. A 30-day **read-only source audit** found approximately 30,000 source rows but far fewer distinct `EMS_Call_Number` values; many rows shared the same call number, unit callsign, and dispatch timestamp. Distinct source rows are not necessarily distinct emergency incidents.
 
-- **Python**
-- **pandas**
-- **requests**
-- **SQL**
-- **SQLite**
-- **Streamlit**
-- **Plotly**
-- **Git / GitHub**
+Rather than silently deleting records or publishing an unsupported count of “unique emergencies,” the dashboard transparently reports **published dispatch records**. The most recent days may also be incomplete or revised later by the publishing system. These limitations are called out directly on the dashboard.
 
-## Project Structure
+**Map limitations:** The EMS data does not provide a validated neighborhood identifier or incident point geometry. The vector map displays official neighborhood boundaries, **not** verified incident hotspots. The application deliberately keeps neighborhood-level EMS counts unavailable until validated matches are obtained; gray means unavailable, not zero.
 
-```text
-cleveland-ems-analytics/
-├── app.py
-├── requirements.txt
-├── README.md
-├── assets/
-│   └── dashboard.png
-├── data/
-├── sql/
-│   └── analysis.sql
-└── src/
-    ├── load_data.py
-    └── build_database.py
-```
+**Privacy:** Public endpoints serve aggregates and neighborhood outlines, never raw incident locations, record identifiers, or unit-level detail. Geographic area aggregates have a minimum reporting threshold.
 
-Generated CSV and SQLite database files are excluded from GitHub and can be recreated by running the data pipeline.
-
-## Running the Project
-
-### 1. Create a virtual environment
+## Run locally (FastAPI application)
 
 ```bash
+git clone https://github.com/Rousan21/cleveland-ems-analytics.git
+cd cleveland-ems-analytics/webapp
 python3 -m venv .venv
 source .venv/bin/activate
-```
-
-### 2. Install dependencies
-
-```bash
 pip install -r requirements.txt
+
+# Local development uses SQLite if EMS_DATABASE_URL is not configured.
+python ingest.py --days 30
+uvicorn main:app --reload
 ```
 
-### 3. Download and process the EMS data
+Visit **http://127.0.0.1:8000**. Run `pytest -q` from `webapp/` to execute the test suite. Source data collection requires an internet connection.
 
-```bash
-python src/load_data.py
+To use PostgreSQL, set `EMS_DATABASE_URL` in your environment to a secure database connection string. Never commit credentials or a populated `.env` file.
+
+## Repository layout
+
+```text
+webapp/                    FastAPI app, analytics, ArcGIS ingest and tests
+  main.py                  Routes and HTML frontend
+  analytics.py             Date-filtered public metrics
+  ingest.py                Idempotent source-row upsert
+  geography.py             Neighborhood boundaries and safe aggregates
+  audit_source.py          Read-only, aggregate data-quality diagnostics
+  templates/ + static/     Dashboard interface and charts
+  tests/                   Automated tests
+.github/workflows/
+  ci.yml                   Test on pushes and pull requests
+  daily-ems-sync.yml       Scheduled database updates
+  audit-ems-source.yml     On-demand public-source diagnostic
+render.yaml                Render web-service configuration
+app.py / src/ / sql/       Original Streamlit/SQLite prototype
 ```
 
-### 4. Build the SQLite database
+The original Streamlit prototype is preserved in the repository as an earlier version; **the public demo is the FastAPI app in `webapp/`**.
 
-```bash
-python src/build_database.py
-```
+## Design choices and engineering highlights
 
-### 5. Launch the dashboard
+- Chose a **separate hosted database** to preserve records across free-tier web-service restarts.
+- Built a **paged ArcGIS ingest** with retry-safe upserts keyed on published `OBJECTID`.
+- Handled **time-zone-aware date windows** and computed timing statistics only where timestamps support them.
+- Exposed aggregate-only API endpoints and avoided unvalidated incident-level mapping.
+- Added **continuous integration and scheduled updates** while keeping secrets in deployment and GitHub settings.
+- Validated the source’s repeated identifiers and disclosed data uncertainty rather than exaggerating emergency or hotspot counts.
 
-```bash
-streamlit run app.py
-```
+## Further enhancements
 
-The dashboard will open locally in the browser.
+Potential extensions include expanding the historical backfill after checking free-tier storage, validated geographic joins for neighborhood totals, and historical monitoring of source publication delays. These are future enhancements rather than requirements for running the public dashboard.
 
-## Data Quality
+**Data source:** [City of Cleveland Division of EMS — ArcGIS](https://www.arcgis.com/home/item.html?id=d5d71757cc73400d843c98bcb46e46b6).
 
-Real-world operational data is not always complete.
+---
 
-Some records contain missing timestamps or unusual timing values. Instead of automatically deleting incomplete records, the project preserves them and only requires the necessary fields for each specific analysis.
-
-For example, a record without an on-scene timestamp may still be useful when analyzing dispatch volume or call priority.
-
-Timing visualizations are limited to the 99th percentile for readability while the underlying records remain unchanged.
-
-## Interpreting the Timing Metrics
-
-The project calculates intervals including:
-
-- **Call → Dispatch**
-- **Call → On Scene**
-
-These values are derived from timestamps available in the public dataset and should be interpreted as **call-to-event intervals**, not official Cleveland EMS response-time or performance metrics.
-
-## Privacy
-
-The project focuses on aggregate operational patterns.
-
-Incident-level location fields and personally identifying information are not included in the dashboard.
-
-## What I Learned
-
-This project gave me hands-on experience with:
-
-- Retrieving data from a public API
-- Working with JSON responses
-- Cleaning real-world data with pandas
-- Handling missing values
-- Working with timestamps and time zones
-- Creating new analytical features
-- Building and querying a SQLite database
-- Writing SQL analysis queries
-- Creating interactive visualizations
-- Designing a dashboard around what a user actually needs to understand
-- Working with imperfect operational data instead of a pre-cleaned practice dataset
-
-## Future Improvements
-
-Possible next steps include:
-
-- Analyzing a longer historical period
-- Automating data refreshes
-- Expanding the SQL analysis
-- Adding appropriately aggregated geographic analysis
-- Deploying the dashboard publicly
+*Created as a practical software-engineering and data-systems project combining public safety experience with backend development, cloud deployment, and real-world data quality.*
