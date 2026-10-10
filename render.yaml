@@ -1,0 +1,15 @@
+# Optional Render Blueprint: public website only. You must separately set up
+# persistent PostgreSQL and a scheduled ingestion job. This file does not
+# automatically enable a daily import or provision a paid database.
+services:
+  - type: web
+    name: cleveland-ems-analytics
+    runtime: python
+    rootDir: webapp
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: EMS_DATABASE_URL
+        sync: false

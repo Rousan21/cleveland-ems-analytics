@@ -1,0 +1,14 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ems_user
+      POSTGRES_PASSWORD: local_dev_only
+      POSTGRES_DB: ems_analytics
+    ports:
+      - "5433:5432"
+    volumes:
+      - ems_postgres:/var/lib/postgresql/data
+volumes:
+  ems_postgres:
