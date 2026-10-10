@@ -1,5 +1,8 @@
 # Cleveland EMS Analytics
 
+<img width="2834" height="1494" alt="image" src="https://github.com/user-attachments/assets/0af9715e-28b3-44bd-8b8c-d9b39f9e0054" />
+
+
 **A deployed, end-to-end public-data analytics application built with Python, FastAPI, PostgreSQL, and automated ingestion.**
 
 [**Explore the live dashboard ↗**](https://cleveland-ems-analytics.onrender.com/) · [FastAPI API docs](https://cleveland-ems-analytics.onrender.com/docs) · [View source data](https://www.arcgis.com/home/item.html?id=d5d71757cc73400d843c98bcb46e46b6)
