@@ -87,3 +87,7 @@ python audit_source.py --days 30
 Or run GitHub Actions **Audit EMS source data** → **Run workflow** → `main` → `30`. The workflow produces an aggregate-only JSON artifact and prints totals for repeated source call numbers, multiple unit callsigns, and recent daily counts. An identifier appearing more than once does **not** prove duplicates are errors: a single incident may produce more than one unit-level record. The audit is diagnostic, not a deduplication rule.
 
 The source can publish or correct historical records after their dispatch date. A sharp fall in the latest daily source records must not be claimed to represent an actual fall in emergency activity without validation. The daily importer refreshes only the latest 30 days by default; if source corrections arrive later, operators may need a wider backfill.
+
+### Identifier reuse by date
+
+The source audit also reports how many EMS call numbers appear on different Cleveland-local dispatch dates, how many span seven or more calendar days, and distinct *call numbers per day* (not unique incidents). Call numbers occurring on widely separated dates must not be interpreted as one continuous emergency. Repeated call-number + unit + dispatch-date groups are diagnostic and do not necessarily represent incorrect duplicate rows. The audit outputs aggregate counts only, not identifiers.

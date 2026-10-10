@@ -27,8 +27,12 @@ def test_aggregate_duplicate_call_number_and_hide_identifiers():
     assert result['repeated_call_numbers_with_multiple_unit_callsigns'] == 1
     assert result['rows_with_missing_call_number'] == 1
     assert result['rows_with_missing_dispatch_time'] == 1
-    assert result['daily_counts_local'] == [{'date': '2026-10-08', 'source_rows': 2},
-                                            {'date': '2026-10-09', 'source_rows': 1}]
+    assert result['daily_counts_local'] == [
+        {'date': '2026-10-08', 'source_rows': 2, 'distinct_nonempty_call_numbers_that_day': 1},
+        {'date': '2026-10-09', 'source_rows': 1, 'distinct_nonempty_call_numbers_that_day': 1}]
+    assert result['call_numbers_on_two_or_more_dispatch_dates'] == 0
+    assert result['call_numbers_spanning_at_least_seven_days'] == 0
+    assert result['call_number_unit_date_groups_with_multiple_rows'] == 0
     assert 'INC-SENSITIVE' not in str(result)
     assert 'UNIT-A' not in str(result)
 
@@ -80,3 +84,25 @@ def test_public_dashboard_labels_are_record_based():
     html = (Path(__file__).resolve().parents[1] / 'templates' / 'index.html').read_text()
     assert 'EMS dispatch records' in html
     assert 'not verified unique incidents' in html
+
+
+def test_audit_identifiers_reused_far_apart_and_same_day_unit_repeats():
+    rows = [[
+        {'EMS_Call_Number': 'REUSE-1', 'Unit_Callsign': 'CAR-A',
+         'Dispatch_Date_Time': ms('2026-09-29T17:00:00+00:00')},
+        {'EMS_Call_Number': 'REUSE-1', 'Unit_Callsign': 'CAR-A',
+         'Dispatch_Date_Time': ms('2026-09-29T18:00:00+00:00')},
+        {'EMS_Call_Number': 'REUSE-1', 'Unit_Callsign': 'CAR-A',
+         'Dispatch_Date_Time': ms('2026-10-08T17:00:00+00:00')},
+        {'EMS_Call_Number': 'OTHER-2', 'Unit_Callsign': 'CAR-A',
+         'Dispatch_Date_Time': ms('2026-10-08T17:00:00+00:00')},
+    ]]
+    result = aggregate_audit(rows)
+    assert result['call_numbers_on_two_or_more_dispatch_dates'] == 1
+    assert result['call_numbers_spanning_at_least_seven_days'] == 1
+    assert result['call_number_unit_date_groups_with_multiple_rows'] == 1
+    assert result['daily_counts_local'] == [
+        {'date': '2026-09-29', 'source_rows': 2, 'distinct_nonempty_call_numbers_that_day': 1},
+        {'date': '2026-10-08', 'source_rows': 2, 'distinct_nonempty_call_numbers_that_day': 2}]
+    assert 'REUSE-1' not in str(result)
+    assert 'CAR-A' not in str(result)
