@@ -1,59 +1,51 @@
-# Cleveland EMS Analytics v2.1 — FastAPI / Python
+# Cleveland EMS Analytics — FastAPI Web Application
 
-This is a Python FastAPI website, separate from the original Streamlit project. It uses the City of Cleveland's public ArcGIS EMS Calls for Service table and includes a date-filterable statistical dashboard. The interface is built with HTML/CSS, Chart.js, and a small amount of browser JavaScript. SQLAlchemy supports SQLite locally and PostgreSQL for hosting.
+**[Live website](https://cleveland-ems-analytics.onrender.com/)** · [Repository overview](../README.md)
 
-## Launch locally
+This `webapp/` directory is the deployed Python FastAPI application. Its public frontend uses HTML/CSS/JavaScript, Chart.js, and a tile-free Leaflet vector map. `SQLAlchemy` supports SQLite for local testing and Neon PostgreSQL for public hosting. The original Streamlit prototype remains at the repository root.
 
-**Mac: double-click `../Open Cleveland EMS.command`.** It creates a local virtual environment on first launch, opens the browser, and refreshes stale data in the background. A second launch reuses installed dependencies. When closed, local updates stop.
+## Local development
 
-Manual launch from `webapp/`:
+From the `webapp/` directory:
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install -r requirements.txt
+pip install -r requirements.txt
 python ingest.py --days 30
-python -m uvicorn main:app --reload
+uvicorn main:app --reload
 ```
 
-Open http://127.0.0.1:8000 and inspect JSON API documentation at http://127.0.0.1:8000/docs.
+Open `http://127.0.0.1:8000` and the OpenAPI page at `http://127.0.0.1:8000/docs`. The default local database is SQLite at `data/ems_v2.db`. The `ingest.py` script fetches paginated source records; `--days 30` refreshes the recent window and `--all` requests all available source history. An `OBJECTID` upsert means the same source row won't be inserted twice by rerunning the importer.
 
-### Historic data
+To connect to PostgreSQL, set `EMS_DATABASE_URL` in the application process environment, using a standard Neon connection URL. Keep database passwords in a private environment variable, not committed files.
 
-`python ingest.py --all` backfills the published history. `python ingest.py --days 30` upserts a rolling 30-day window; re-running doesn't duplicate a known OBJECTID. A recent window doesn't include all historical records. The City updates the public feed on its own schedule, not live.
+## Deployment
 
-## Maps and privacy
+The deployed project uses:
 
-**This release removes all raster map tiles.** A clean Leaflet vector map displays boundary polygons from the public [Cleveland neighborhood boundary layer](https://services7.arcgis.com/ZodPOMBKsdAsTqF4/ArcGIS/rest/services/Cleveland_Neighborhoods/FeatureServer/147). The server downloads the official GeoJSON the first time it's requested, validates it, and caches it to `data/cleveland_neighborhoods.geojson`.
+- Render (free Python web service), configured from the GitHub repository with root directory `webapp`.
+- Neon PostgreSQL, configured through Render environment variable `EMS_DATABASE_URL`.
+- GitHub Actions workflow `daily-ems-sync.yml` to import a rolling 30-day source window each day with the GitHub repository secret `EMS_DATABASE_URL`.
+- `ci.yml` for tests on commits and pull requests.
 
-**Important:** This EMS dataset is a table with a `Block_Location` text field, **not** a spatial point layer with a validated neighborhood column. We have *not* proved an incident-to-neighborhood match. Therefore neighborhood shapes are gray by default and are explicitly labeled *unavailable*, not zero. Don't claim that higher/lower call areas are known until this step is solved.
+The repository-level `render.yaml` provides a corresponding example service configuration. The free web service may sleep while idle; no persistent database records are stored on Render's temporary filesystem. Follow `../DEPLOY_RENDER_NEON.md` for initial setup steps.
 
-When a reviewed assignment CSV is available, the app supports privacy-preserving choropleth colors and ranking:
+## Source-data interpretation
 
-1. Validate that each record ID maps to the correct *official* neighborhood (using independently checked geocoding/census joins and error analysis). **Do not guess from street names.**
-2. Store that checked crosswalk privately as `object_id,neighborhood` CSV outside source control.
-3. Run:
+The dashboard intentionally counts **published dispatch records** and does *not* claim these equal independent emergency incidents. The public ArcGIS table contains `EMS_Call_Number` and `Unit_Callsign` in addition to `OBJECTID`. A diagnostic audit found many different source rows sharing call/unit/dispatch-time identifiers. Some recent days also contain fewer published source rows; reporting lag or corrections remain possible.
 
-   ```bash
-   python import_verified_areas.py /path/to/reviewed.csv --source 'Validated census-geocoder output reviewed against official city neighborhood polygons'
-   ```
-4. The API `/api/areas` aggregates only those reviewed assignments and suppresses counts below **11** per area for the selected time period/priority. The browser colors eligible neighborhoods; unverified or suppressed areas remain gray.
+Read-only diagnostics:
 
-`/api/areas` contains no incident addresses, coordinates, or IDs. Never check the crosswalk CSV into GitHub. Neighborhood totals can differ from all call totals because only verified matches are counted. Caution: raw call counts are not per-capita measures or indicators of neighborhood danger.
+```bash
+python audit_source.py --days 30
+```
 
-## Publishing a shareable website
+Or use GitHub Actions **Audit EMS source data** with a chosen date window. Audit output contains only aggregate statistics, not individual source IDs or addresses. The audit never connects to Neon or edits the database.
 
-A stable web URL needs a hosting provider. AWS is **not necessary**. `../render.yaml` is a starting Render Blueprint for a FastAPI web process. It intentionally does not auto-create paid resources.
+The neighborhood map uses the city’s [official neighborhood boundary layer](https://services7.arcgis.com/ZodPOMBKsdAsTqF4/ArcGIS/rest/services/Cleveland_Neighborhoods/FeatureServer/147) as a geographic reference. EMS source rows do not carry a validated neighborhood/point assignment. The app must not display area-specific EMS call totals until independently verified assignments are available. Area totals below 11 records are suppressed.
 
-1. Add this project to a GitHub repository (the default branch should contain `webapp/` and `render.yaml`).
-2. On [Render](https://render.com/docs/your-first-deploy), connect GitHub and create a Python web service (or use the included Blueprint). The app starts with `uvicorn main:app --host 0.0.0.0 --port $PORT`, with root directory `webapp`.
-3. Add a **persistent, externally managed PostgreSQL database**. Set Render's `EMS_DATABASE_URL` environment variable to its connection URL. The application normalizes `postgres://` and `postgresql://` to the psycopg v3 driver automatically.
-4. To perform daily refreshes, configure a separate scheduler. One option is the included `.github/workflows/daily-ems-sync.yml` in the repository root. Add **repository secret `EMS_DATABASE_URL`** with your database's **externally reachable** connection string. The GitHub scheduler cannot connect via a provider's private-only database hostname. Run the workflow manually once (with `full_history=true` if appropriate) then watch the scheduled import logs. The scheduled workflow runs daily at 13:37 UTC. Scheduled Actions can be delayed or missed; this is not a hard real-time guarantee.
-5. Verify the public URL, that import successes appear in the header, and that all-time filters actually cover the imported history.
-
-**Cost caution:** Render's free web service can sleep after 15 minutes idle, so the first visitor may wait for startup. Its filesystem is ephemeral and cannot safely store SQLite data across restarts. Free Render PostgreSQL currently expires after 30 days. For a lasting public portfolio, use a persistent DB plan or a different host you trust after checking up-to-date pricing. Do not publish database credentials or keep test passwords.
-
-This is *deployment-ready code*, not a deployed website. A local `127.0.0.1` address is never public.
+Public analytics uses time-zone-aware date filtering (Cleveland local time), median call-to-dispatch and call-to-scene intervals where both timestamps are valid, and aggregated daily, hourly and priority statistics. These are exploratory measures, **not official response-time performance statistics**.
 
 ## Tests
 
@@ -61,37 +53,6 @@ This is *deployment-ready code*, not a deployed website. A local `127.0.0.1` add
 pytest -q
 ```
 
-Includes API, import idempotency, date and DST filter, GeoJSON sanitization, geographic suppression, and absence of raster tiles. ArcGIS network calls are mocked during automated tests. Browser visuals and actual city geographic matches must be verified on a machine with internet access.
+Tests cover date handling, APIs, source-data auditing, geography/privacy guards, and import logic using mocked external services. Actual ArcGIS availability and rendering should still be validated in a live browser.
 
-## Remaining steps
-
-- Validate the ArcGIS feed's location-to-neighborhood matches, then compute real safe geographic counts.
-- Deploy the public backend and reliably schedule ingestion, with monitoring and backups.
-- Backfill the full historical data; optimize large queries and add CI for PostgreSQL.
-- Audit the page on mobile and check accessibility and chart/map rendering on different browsers.
-
-Official data: https://www.arcgis.com/home/item.html?id=d5d71757cc73400d843c98bcb46e46b6.
-
- 
-### Source identity and reporting-lag audit
-
-The public `OBJECTID` is a unique *source row* identifier; it is **not established as a unique emergency incident**. The ArcGIS table also contains `EMS_Call_Number` and `Unit_Callsign`. The dashboard deliberately calls its metrics *published records* until their relationships are checked.
-
-To audit the last 30 days without changing Neon or displaying raw incident identifiers:
-
-```bash
-cd webapp
-python audit_source.py --days 30
-```
-
-Or run GitHub Actions **Audit EMS source data** → **Run workflow** → `main` → `30`. The workflow produces an aggregate-only JSON artifact and prints totals for repeated source call numbers, multiple unit callsigns, and recent daily counts. An identifier appearing more than once does **not** prove duplicates are errors: a single incident may produce more than one unit-level record. The audit is diagnostic, not a deduplication rule.
-
-The source can publish or correct historical records after their dispatch date. A sharp fall in the latest daily source records must not be claimed to represent an actual fall in emergency activity without validation. The daily importer refreshes only the latest 30 days by default; if source corrections arrive later, operators may need a wider backfill.
-
-### Identifier reuse by date
-
-The source audit also reports how many EMS call numbers appear on different Cleveland-local dispatch dates, how many span seven or more calendar days, and distinct *call numbers per day* (not unique incidents). Call numbers occurring on widely separated dates must not be interpreted as one continuous emergency. Repeated call-number + unit + dispatch-date groups are diagnostic and do not necessarily represent incorrect duplicate rows. The audit outputs aggregate counts only, not identifiers.
-
-### Repeated source-row signatures (read-only)
-
-The audit also counts repeated combinations of `EMS_Call_Number`, `Unit_Callsign`, and the exact `Dispatch_Date_Time` timestamp, including how many additional rows share such keys. These are **matching identifier/time signatures**, *not* proof that every underlying field is a duplicate; no source rows are deleted. Daily output compares three quantities: published source rows, distinct call numbers, and distinct call/unit/dispatch signatures. This can reveal a repeated-snapshot pattern without exposing any identifiers. A cautious incident-level dashboard metric requires validating the source's event structure first.
+**Data source:** [City of Cleveland Division of EMS — ArcGIS](https://www.arcgis.com/home/item.html?id=d5d71757cc73400d843c98bcb46e46b6).
