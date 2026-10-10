@@ -91,3 +91,7 @@ The source can publish or correct historical records after their dispatch date. 
 ### Identifier reuse by date
 
 The source audit also reports how many EMS call numbers appear on different Cleveland-local dispatch dates, how many span seven or more calendar days, and distinct *call numbers per day* (not unique incidents). Call numbers occurring on widely separated dates must not be interpreted as one continuous emergency. Repeated call-number + unit + dispatch-date groups are diagnostic and do not necessarily represent incorrect duplicate rows. The audit outputs aggregate counts only, not identifiers.
+
+### Repeated source-row signatures (read-only)
+
+The audit also counts repeated combinations of `EMS_Call_Number`, `Unit_Callsign`, and the exact `Dispatch_Date_Time` timestamp, including how many additional rows share such keys. These are **matching identifier/time signatures**, *not* proof that every underlying field is a duplicate; no source rows are deleted. Daily output compares three quantities: published source rows, distinct call numbers, and distinct call/unit/dispatch signatures. This can reveal a repeated-snapshot pattern without exposing any identifiers. A cautious incident-level dashboard metric requires validating the source's event structure first.

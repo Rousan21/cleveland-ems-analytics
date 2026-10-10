@@ -62,6 +62,7 @@ def aggregate_audit(pages, *, days=30):
     dates_by_number = defaultdict(set)
     numbers_by_date = defaultdict(set)
     same_number_unit_day = Counter()
+    same_number_unit_dispatch = Counter()
     rows = missing_number = missing_dispatch = 0
     newest_dispatch = None
     for page in pages:
@@ -85,6 +86,7 @@ def aggregate_audit(pages, *, days=30):
                     dates_by_number[call_number].add(day)
                     numbers_by_date[day].add(call_number)
                     same_number_unit_day[(call_number, unit, day)] += 1
+                    same_number_unit_dispatch[(call_number, unit, timestamp)] += 1
                 if newest_dispatch is None or timestamp > newest_dispatch:
                     newest_dispatch = timestamp
 
@@ -97,6 +99,14 @@ def aggregate_audit(pages, *, days=30):
         for days in dates_by_number.values() if days
     )
     repeated_number_unit_day_groups = sum(count > 1 for count in same_number_unit_day.values())
+    repeated_number_unit_dispatch_groups = sum(count > 1 for count in same_number_unit_dispatch.values())
+    excess_rows_same_dispatch_key = sum(count - 1 for count in same_number_unit_dispatch.values() if count > 1)
+    max_same_dispatch_key = max(same_number_unit_dispatch.values(), default=0)
+    fingerprints_per_day = Counter()
+    for number, unit, timestamp in same_number_unit_dispatch:
+        fingerprints_per_day[timestamp.astimezone(LOCAL).date().isoformat()] += 1
+    # Counts of key multiplicities, not individual call numbers or unit identifiers.
+    multiplicity = Counter(min(count, 11) for count in same_number_unit_dispatch.values())
     return {
         'days_requested': days,
         'source_rows': rows,
@@ -109,10 +119,18 @@ def aggregate_audit(pages, *, days=30):
         'call_numbers_on_two_or_more_dispatch_dates': cross_date_numbers,
         'call_numbers_spanning_at_least_seven_days': long_span_numbers,
         'call_number_unit_date_groups_with_multiple_rows': repeated_number_unit_day_groups,
+        'call_number_unit_exact_dispatch_groups_with_multiple_rows': repeated_number_unit_dispatch_groups,
+        'extra_rows_with_same_call_unit_exact_dispatch': excess_rows_same_dispatch_key,
+        'largest_call_unit_exact_dispatch_group': max_same_dispatch_key,
+        'call_unit_exact_dispatch_group_multiplicity': [
+            {'rows_per_key': str(n) if n <= 10 else '11+', 'groups': multiplicity[n]}
+            for n in sorted(multiplicity)
+        ],
         'newest_source_dispatch_utc': newest_dispatch.isoformat() if newest_dispatch else None,
         'daily_counts_local': [
             {'date': d, 'source_rows': day_counts[d],
-             'distinct_nonempty_call_numbers_that_day': len(numbers_by_date[d])}
+             'distinct_nonempty_call_numbers_that_day': len(numbers_by_date[d]),
+             'distinct_call_unit_exact_dispatch_keys_that_day': fingerprints_per_day[d]}
             for d in sorted(day_counts)
         ],
         'interpretation': ('Counts are source table rows, NOT unique incidents. Call numbers seen '
@@ -140,12 +158,17 @@ def main():
     print('Call numbers seen on 2+ different dispatch dates:', result['call_numbers_on_two_or_more_dispatch_dates'])
     print('Call numbers spanning 7+ calendar days:', result['call_numbers_spanning_at_least_seven_days'])
     print('Call-number + unit + day groups with 2+ rows:', result['call_number_unit_date_groups_with_multiple_rows'])
+    print('Call-number + unit + exact dispatch time groups with 2+ rows:', result['call_number_unit_exact_dispatch_groups_with_multiple_rows'])
+    print('Additional rows sharing exactly that key:', result['extra_rows_with_same_call_unit_exact_dispatch'])
+    print('Largest exact dispatch key multiplicity:', result['largest_call_unit_exact_dispatch_group'])
+    print('Exact dispatch key multiplicities (groups):', result['call_unit_exact_dispatch_group_multiplicity'])
     print('Rows missing call number:', result['rows_with_missing_call_number'])
     print('Latest source dispatch (UTC):', result['newest_source_dispatch_utc'])
     print('Recent daily published-row counts (Cleveland local dates):')
     for row in result['daily_counts_local'][-14:]:
         print(f"  {row['date']}: {row['source_rows']:,} rows; "
-              f"{row['distinct_nonempty_call_numbers_that_day']:,} distinct call numbers on that day")
+              f"{row['distinct_nonempty_call_numbers_that_day']:,} distinct call numbers; "
+              f"{row['distinct_call_unit_exact_dispatch_keys_that_day']:,} distinct call/unit/dispatch keys")
     print('An aggregate-only report was written to:', args.output)
     print(result['interpretation'])
 

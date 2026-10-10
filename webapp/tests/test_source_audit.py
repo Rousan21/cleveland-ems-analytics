@@ -28,8 +28,8 @@ def test_aggregate_duplicate_call_number_and_hide_identifiers():
     assert result['rows_with_missing_call_number'] == 1
     assert result['rows_with_missing_dispatch_time'] == 1
     assert result['daily_counts_local'] == [
-        {'date': '2026-10-08', 'source_rows': 2, 'distinct_nonempty_call_numbers_that_day': 1},
-        {'date': '2026-10-09', 'source_rows': 1, 'distinct_nonempty_call_numbers_that_day': 1}]
+        {'date': '2026-10-08', 'source_rows': 2, 'distinct_nonempty_call_numbers_that_day': 1, 'distinct_call_unit_exact_dispatch_keys_that_day': 2},
+        {'date': '2026-10-09', 'source_rows': 1, 'distinct_nonempty_call_numbers_that_day': 1, 'distinct_call_unit_exact_dispatch_keys_that_day': 1}]
     assert result['call_numbers_on_two_or_more_dispatch_dates'] == 0
     assert result['call_numbers_spanning_at_least_seven_days'] == 0
     assert result['call_number_unit_date_groups_with_multiple_rows'] == 0
@@ -102,7 +102,33 @@ def test_audit_identifiers_reused_far_apart_and_same_day_unit_repeats():
     assert result['call_numbers_spanning_at_least_seven_days'] == 1
     assert result['call_number_unit_date_groups_with_multiple_rows'] == 1
     assert result['daily_counts_local'] == [
-        {'date': '2026-09-29', 'source_rows': 2, 'distinct_nonempty_call_numbers_that_day': 1},
-        {'date': '2026-10-08', 'source_rows': 2, 'distinct_nonempty_call_numbers_that_day': 2}]
+        {'date': '2026-09-29', 'source_rows': 2, 'distinct_nonempty_call_numbers_that_day': 1, 'distinct_call_unit_exact_dispatch_keys_that_day': 2},
+        {'date': '2026-10-08', 'source_rows': 2, 'distinct_nonempty_call_numbers_that_day': 2, 'distinct_call_unit_exact_dispatch_keys_that_day': 2}]
     assert 'REUSE-1' not in str(result)
     assert 'CAR-A' not in str(result)
+
+
+def test_multiple_rows_same_call_unit_dispatch_are_counted_without_exposing_identifiers():
+    stamp = ms('2026-10-02T12:34:00+00:00')
+    rows = [[
+        {'EMS_Call_Number': 'SECRET-A', 'Unit_Callsign': 'EMS7', 'Dispatch_Date_Time': stamp},
+        {'EMS_Call_Number': 'SECRET-A', 'Unit_Callsign': 'EMS7', 'Dispatch_Date_Time': stamp},
+        {'EMS_Call_Number': 'SECRET-A', 'Unit_Callsign': 'EMS7', 'Dispatch_Date_Time': stamp},
+        {'EMS_Call_Number': 'SECRET-A', 'Unit_Callsign': 'EMS8', 'Dispatch_Date_Time': stamp},
+        {'EMS_Call_Number': 'SECRET-B', 'Unit_Callsign': 'EMS7', 'Dispatch_Date_Time': stamp},
+    ]]
+    result = aggregate_audit(rows)
+    assert result['source_rows'] == 5
+    assert result['call_number_unit_exact_dispatch_groups_with_multiple_rows'] == 1
+    assert result['extra_rows_with_same_call_unit_exact_dispatch'] == 2
+    assert result['largest_call_unit_exact_dispatch_group'] == 3
+    assert result['call_unit_exact_dispatch_group_multiplicity'] == [
+        {'rows_per_key': '1', 'groups': 2},
+        {'rows_per_key': '3', 'groups': 1}]
+    assert result['daily_counts_local'] == [{
+        'date': '2026-10-02', 'source_rows': 5,
+        'distinct_nonempty_call_numbers_that_day': 2,
+        'distinct_call_unit_exact_dispatch_keys_that_day': 3,
+    }]
+    assert 'SECRET-A' not in str(result)
+    assert 'EMS7' not in str(result)
