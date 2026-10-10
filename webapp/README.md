@@ -71,3 +71,19 @@ Includes API, import idempotency, date and DST filter, GeoJSON sanitization, geo
 - Audit the page on mobile and check accessibility and chart/map rendering on different browsers.
 
 Official data: https://www.arcgis.com/home/item.html?id=d5d71757cc73400d843c98bcb46e46b6.
+
+ 
+### Source identity and reporting-lag audit
+
+The public `OBJECTID` is a unique *source row* identifier; it is **not established as a unique emergency incident**. The ArcGIS table also contains `EMS_Call_Number` and `Unit_Callsign`. The dashboard deliberately calls its metrics *published records* until their relationships are checked.
+
+To audit the last 30 days without changing Neon or displaying raw incident identifiers:
+
+```bash
+cd webapp
+python audit_source.py --days 30
+```
+
+Or run GitHub Actions **Audit EMS source data** → **Run workflow** → `main` → `30`. The workflow produces an aggregate-only JSON artifact and prints totals for repeated source call numbers, multiple unit callsigns, and recent daily counts. An identifier appearing more than once does **not** prove duplicates are errors: a single incident may produce more than one unit-level record. The audit is diagnostic, not a deduplication rule.
+
+The source can publish or correct historical records after their dispatch date. A sharp fall in the latest daily source records must not be claimed to represent an actual fall in emergency activity without validation. The daily importer refreshes only the latest 30 days by default; if source corrections arrive later, operators may need a wider backfill.

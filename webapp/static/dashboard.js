@@ -19,7 +19,7 @@ function draw(id, type, labels, values, color, extra = {}) {
   };
   state.charts[id] = new Chart($(id), {
     type,
-    data: { labels, datasets: [{ label: 'EMS records', data: values, borderColor: color, backgroundColor: type === 'doughnut' ? ['#1978bc','#3cabc7','#89cbd6','#d9ebf4'] : (type === 'line' ? 'rgba(25,120,188,.09)' : color), fill: type === 'line', tension: .32, pointRadius: type === 'line' ? 2 : 0, borderWidth: type === 'line' ? 2.5 : 0, borderRadius: type === 'bar' ? 5 : undefined }] },
+    data: { labels, datasets: [{ label: 'Published EMS records', data: values, borderColor: color, backgroundColor: type === 'doughnut' ? ['#1978bc','#3cabc7','#89cbd6','#d9ebf4'] : (type === 'line' ? 'rgba(25,120,188,.09)' : color), fill: type === 'line', tension: .32, pointRadius: type === 'line' ? 2 : 0, borderWidth: type === 'line' ? 2.5 : 0, borderRadius: type === 'bar' ? 5 : undefined }] },
     options: opts
   });
 }

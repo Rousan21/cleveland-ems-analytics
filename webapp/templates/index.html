@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light" />
   <meta name="description" content="Explore publicly released Cleveland EMS activity through an interactive data dashboard." />
   <title>Cleveland EMS | City Response Explorer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -45,18 +46,18 @@
         <div id="error-message" role="alert" class="error" hidden></div>
       </section>
       <section class="kpi-grid" aria-label="EMS summary metrics">
-        <article class="kpi"><div class="kpi-label">EMS calls <span>↗</span></div><div class="kpi-value" id="total-calls">—</div><div class="kpi-meta">Calls with a recorded dispatch time</div></article>
+        <article class="kpi"><div class="kpi-label">EMS dispatch records <span>↗</span></div><div class="kpi-value" id="total-calls">—</div><div class="kpi-meta">Published rows with a recorded dispatch time</div></article>
         <article class="kpi"><div class="kpi-label">Median call → dispatch <span>◷</span></div><div class="kpi-value" id="median-dispatch">—</div><div class="kpi-meta">Minutes, where timestamps are valid</div></article>
         <article class="kpi"><div class="kpi-label">Median call → on scene <span>◷</span></div><div class="kpi-value" id="median-scene">—</div><div class="kpi-meta">Minutes, where timestamps are valid</div></article>
         <article class="kpi kpi-dark"><div class="kpi-label">Records in database <span>◈</span></div><div class="kpi-value" id="total-stored">—</div><div class="kpi-meta">Across all imported periods</div></article>
       </section>
-      <section id="trends" class="two-col"><article class="panel wide"><div class="panel-header"><div><div class="overline">01 / ACTIVITY</div><h2>Dispatch volume over time</h2><p>How recorded EMS activity changes through your selected period.</p></div><span class="tag">DAILY</span></div><div class="chart-wrap"><canvas id="volume-chart" aria-label="Daily dispatch call counts" role="img"></canvas></div></article><article class="panel narrow"><div class="panel-header"><div><div class="overline">02 / PRIORITY</div><h2>Call mix</h2><p>Counts by published priority code.</p></div></div><div class="chart-wrap donut-wrap"><canvas id="priority-chart" aria-label="Call counts by priority" role="img"></canvas></div></article></section>
-      <section class="two-col second-row"><article class="panel"><div class="panel-header"><div><div class="overline">03 / TIMING</div><h2>Busiest dispatch hours</h2><p>Cleveland local time (Eastern).</p></div></div><div class="chart-wrap"><canvas id="hour-chart" aria-label="Calls by dispatch hour" role="img"></canvas></div></article><article id="geography" class="panel"><div class="panel-header"><div><div class="overline">04 / GEOGRAPHY</div><h2>Neighborhood overview</h2><p>Verified area totals, when available.</p></div><span class="tag">VECTOR MAP</span></div><div id="map" aria-label="Cleveland neighborhood boundary map" role="img"></div>
+      <section id="trends" class="two-col"><article class="panel wide"><div class="panel-header"><div><div class="overline">01 / ACTIVITY</div><h2>Published dispatch records by day</h2><p>Source rows by dispatch date within your selected period.</p></div><span class="tag">DAILY</span></div><div class="chart-wrap"><canvas id="volume-chart" aria-label="Daily published dispatch record counts" role="img"></canvas></div><p class="data-quality-note" role="note">Recent dates may be incomplete or updated later by the source. These are published records, not verified unique incidents; do not infer a sudden change in demand from the latest points alone.</p></article><article class="panel narrow"><div class="panel-header"><div><div class="overline">02 / PRIORITY</div><h2>Priority mix</h2><p>Published dispatch records by priority code.</p></div></div><div class="chart-wrap donut-wrap"><canvas id="priority-chart" aria-label="Call counts by priority" role="img"></canvas></div></article></section>
+      <section class="two-col second-row"><article class="panel"><div class="panel-header"><div><div class="overline">03 / TIMING</div><h2>Recorded dispatches by hour</h2><p>Published record counts · Cleveland local time (Eastern).</p></div></div><div class="chart-wrap"><canvas id="hour-chart" aria-label="Calls by dispatch hour" role="img"></canvas></div></article><article id="geography" class="panel"><div class="panel-header"><div><div class="overline">04 / GEOGRAPHY</div><h2>Neighborhood overview</h2><p>Verified area totals, when available.</p></div><span class="tag">VECTOR MAP</span></div><div id="map" aria-label="Cleveland neighborhood boundary map" role="img"></div>
 <div class="map-caption" id="map-status" role="status">Loading neighborhood outlines…</div>
 <div id="map-legend" class="map-legend" hidden><span>Lower verified call count</span><div class="legend-ramp"></div><span>Higher</span></div>
 <p class="map-note" id="map-explainer">Checking whether verified area totals are available…</p>
 <h3 class="area-title">Neighborhood ranking</h3><ol class="area-ranking" id="area-ranking"><li class="area-empty">Checking availability…</li></ol></article></section>
-      <footer><span id="coverage">Source coverage: waiting for first import</span><p>Call-to-event intervals are exploratory, <strong>not</strong> official EMS response-time performance metrics. Source records may be delayed or corrected.</p></footer>
+      <footer><span id="coverage">Source coverage: waiting for first import</span><p>Call-to-event intervals are exploratory, <strong>not</strong> official EMS response-time performance metrics. Source records may be delayed or corrected; one emergency incident may have multiple source rows.</p></footer>
     </main>
   </div>
 </body>
