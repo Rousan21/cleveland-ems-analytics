@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Explore publicly released Cleveland EMS activity through an interactive data dashboard." />
+  <title>Cleveland EMS | City Response Explorer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/styles.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzxoknFGvkFSk8o+aqMS0vw8p=" crossorigin="" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js" defer></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="" defer></script>
+  <script src="/static/dashboard.js" defer></script>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar" aria-label="Primary navigation">
+      <div class="brand"><span class="brand-icon">✚</span><div>CLE<span class="brand-accent">/</span>EMS<small>Public Data Explorer</small></div></div>
+      <div class="nav-label">WORKSPACE</div>
+      <a href="#overview" class="nav-link active"><span>◫</span> Overview</a>
+      <a href="#trends" class="nav-link"><span>⌁</span> Activity trends</a>
+      <a href="#geography" class="nav-link"><span>⬡</span> Geographic view</a>
+      <div class="sidebar-bottom"><span class="pulse"></span> Based on public EMS records <p>Independent educational analysis. Not an official Cleveland EMS dashboard.</p></div>
+    </aside>
+    <main id="overview" class="main">
+      <div class="topbar"><span class="breadcrumb">DASHBOARD <span>/</span> OVERVIEW</span><a class="docs-link" href="https://www.arcgis.com/home/item.html?id=d5d71757cc73400d843c98bcb46e46b6" target="_blank" rel="noopener noreferrer">Source ↗</a></div>
+      <header class="hero"><div><div class="eyebrow"><span class="eyebrow-dot"></span> CLEVELAND, OHIO · PUBLIC SAFETY DATA</div><h1>EMS Activity <em>Explorer.</em></h1><p>Understand when emergency medical calls occur, how demand changes, and what the public records tell us.</p></div><div class="hero-stamp"><div class="stamp-mark">✚</div><small>DATA EXPLORER</small></div></header>
+      <section class="filters" aria-label="Date and priority filters">
+        <div class="filter-top"><strong>Explore by time period</strong><span id="sync-indicator" role="status">Checking data freshness…</span></div>
+        <div class="filter-row">
+          <div class="range-buttons" role="group" aria-label="Time range">
+            <button type="button" class="range-button" data-window="24h">Past day</button>
+            <button type="button" class="range-button" data-window="7d">7 days</button>
+            <button type="button" class="range-button selected" data-window="30d" aria-pressed="true">30 days</button>
+            <button type="button" class="range-button" data-window="90d">3 months</button>
+            <button type="button" class="range-button" data-window="1y">1 year</button>
+            <button type="button" class="range-button" data-window="all">All imported</button>
+            <button type="button" class="range-button" data-window="custom">Custom</button>
+          </div>
+          <label class="priority-select">Call priority <select id="priority"><option value="all">All priorities</option><option value="1">Priority 1</option><option value="2">Priority 2</option><option value="3">Priority 3</option></select></label>
+        </div>
+        <div id="custom-range" class="custom-range" hidden><label>From <input type="date" id="start-date"></label><label>Through <input type="date" id="end-date"></label><button id="apply-custom" type="button">Apply range</button></div>
+        <div id="error-message" role="alert" class="error" hidden></div>
+      </section>
+      <section class="kpi-grid" aria-label="EMS summary metrics">
+        <article class="kpi"><div class="kpi-label">EMS calls <span>↗</span></div><div class="kpi-value" id="total-calls">—</div><div class="kpi-meta">Calls with a recorded dispatch time</div></article>
+        <article class="kpi"><div class="kpi-label">Median call → dispatch <span>◷</span></div><div class="kpi-value" id="median-dispatch">—</div><div class="kpi-meta">Minutes, where timestamps are valid</div></article>
+        <article class="kpi"><div class="kpi-label">Median call → on scene <span>◷</span></div><div class="kpi-value" id="median-scene">—</div><div class="kpi-meta">Minutes, where timestamps are valid</div></article>
+        <article class="kpi kpi-dark"><div class="kpi-label">Records in database <span>◈</span></div><div class="kpi-value" id="total-stored">—</div><div class="kpi-meta">Across all imported periods</div></article>
+      </section>
+      <section id="trends" class="two-col"><article class="panel wide"><div class="panel-header"><div><div class="overline">01 / ACTIVITY</div><h2>Dispatch volume over time</h2><p>How recorded EMS activity changes through your selected period.</p></div><span class="tag">DAILY</span></div><div class="chart-wrap"><canvas id="volume-chart" aria-label="Daily dispatch call counts" role="img"></canvas></div></article><article class="panel narrow"><div class="panel-header"><div><div class="overline">02 / PRIORITY</div><h2>Call mix</h2><p>Counts by published priority code.</p></div></div><div class="chart-wrap donut-wrap"><canvas id="priority-chart" aria-label="Call counts by priority" role="img"></canvas></div></article></section>
+      <section class="two-col second-row"><article class="panel"><div class="panel-header"><div><div class="overline">03 / TIMING</div><h2>Busiest dispatch hours</h2><p>Cleveland local time (Eastern).</p></div></div><div class="chart-wrap"><canvas id="hour-chart" aria-label="Calls by dispatch hour" role="img"></canvas></div></article><article id="geography" class="panel"><div class="panel-header"><div><div class="overline">04 / GEOGRAPHY</div><h2>Neighborhood overview</h2><p>Verified area totals, when available.</p></div><span class="tag">VECTOR MAP</span></div><div id="map" aria-label="Cleveland neighborhood boundary map" role="img"></div>
+<div class="map-caption" id="map-status" role="status">Loading neighborhood outlines…</div>
+<div id="map-legend" class="map-legend" hidden><span>Lower verified call count</span><div class="legend-ramp"></div><span>Higher</span></div>
+<p class="map-note" id="map-explainer">Checking whether verified area totals are available…</p>
+<h3 class="area-title">Neighborhood ranking</h3><ol class="area-ranking" id="area-ranking"><li class="area-empty">Checking availability…</li></ol></article></section>
+      <footer><span id="coverage">Source coverage: waiting for first import</span><p>Call-to-event intervals are exploratory, <strong>not</strong> official EMS response-time performance metrics. Source records may be delayed or corrected.</p></footer>
+    </main>
+  </div>
+</body>
+</html>

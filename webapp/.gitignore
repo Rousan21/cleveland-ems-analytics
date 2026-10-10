@@ -1,0 +1,9 @@
+__pycache__/
+.pytest_cache/
+.venv/
+.env
+*.pyc
+data/
+
+# Validated incident-to-area assignments must not be published
+*neighborhood_assignments*.csv
