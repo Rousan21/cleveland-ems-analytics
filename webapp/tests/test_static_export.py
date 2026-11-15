@@ -39,6 +39,9 @@ def test_build_static_site_preserves_filters_and_privacy(tmp_path, monkeypatch):
     output = export_static.build_site(tmp_path / "site")
     assert 'data-static-site="true"' in (output / "index.html").read_text()
     assert (output / "static" / "dashboard.js").exists()
+    assert (output / "static" / "v3.css").exists()
+    assert 'id="insight-hour"' in (output / "index.html").read_text()
+    assert 'id="download-daily"' in (output / "index.html").read_text()
     assert len([c for c in calls if c[0] == "summary"]) == 24
     assert len([c for c in calls if c[0] == "areas"]) == 24
     assert (output / "api" / "summary" / "all" / "3.json").exists()
@@ -46,6 +49,7 @@ def test_build_static_site_preserves_filters_and_privacy(tmp_path, monkeypatch):
     assert not (output / "api" / "summary" / "custom").exists()
     data = json.loads((output / "api" / "summary" / "30d" / "all.json").read_text())
     assert data["records"] == 12
+    assert data["snapshot_generated_at"]
     assert "block_location" not in data
     assert "EMS_DATABASE_URL" not in (output / "index.html").read_text()
 
