@@ -172,3 +172,49 @@ def test_home_uses_vector_boundary_map_no_tile_layer():
     assert "L.geoJSON" in js
     assert 'L.tileLayer' not in js
     assert 'openstreetmap.org' not in js
+
+
+def test_publication_history_measures_observed_count_changes_only():
+    from publication_history import capture_publication_snapshot, publication_history
+    from datetime import date
+    original = datetime(2026, 11, 12, 16, tzinfo=timezone.utc)
+    first_capture = datetime(2026, 11, 14, 18, tzinfo=timezone.utc)
+    second_capture = datetime(2026, 11, 15, 18, tzinfo=timezone.utc)
+    with SessionLocal() as db:
+        db.add(example_call(id=301, when=original))
+        db.commit()
+
+    initial = publication_history(now=first_capture)
+    assert initial['status'] == 'collecting'
+    assert initial['observations'] == 0
+
+    capture_publication_snapshot(now=first_capture, days=7)
+    once = publication_history(now=first_capture, days=7)
+    assert once['observations'] == 1
+    assert once['status'] == 'collecting'
+
+    with SessionLocal() as db:
+        db.add(example_call(id=302, when=original + timedelta(hours=1)))
+        db.commit()
+
+    capture_publication_snapshot(now=second_capture, days=7)
+    results = publication_history(now=second_capture, days=7)
+    assert results['status'] == 'observed_changes'
+    assert results['observations'] == 2
+    sample = next(row for row in results['days'] if row['date'] == date(2026, 11, 12).isoformat())
+    assert sample['first_observed'] == 1
+    assert sample['latest_observed'] == 2
+    assert sample['net_change'] == 1
+    assert sample['samples'] == 2
+    # Only aggregate citywide counts and their dates can be published.
+    assert 'REDACTED' not in str(results)
+    assert 'block_location' not in str(results)
+    assert '301' not in str(results)
+
+
+def test_publication_history_rejects_invalid_window():
+    from publication_history import capture_publication_snapshot, publication_history
+    with pytest.raises(ValueError, match='days'):
+        capture_publication_snapshot(days=1)
+    with pytest.raises(ValueError, match='days'):
+        publication_history(days=22)
