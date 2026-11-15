@@ -22,4 +22,4 @@ jobs:
       - name: Validate browser JavaScript syntax
         run: |
           node --check static/dashboard.js
-          node --check static/v5.js
+          node --check static/v6.js
