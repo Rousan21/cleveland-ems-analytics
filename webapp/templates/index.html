@@ -11,10 +11,12 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/styles.css" />
   <link rel="stylesheet" href="/static/v3.css" />
+  <link rel="stylesheet" href="/static/v4.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzxoknFGvkFSk8o+aqMS0vw8p=" crossorigin="" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js" defer></script>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="" defer></script>
   <script src="/static/dashboard.js" defer></script>
+  <script src="/static/v4.js" defer></script>
 </head>
 <body>
   <div class="shell">
@@ -24,7 +26,9 @@
       <a href="#overview" class="nav-link active"><span>◫</span> Overview</a>
       <a href="#insights" class="nav-link"><span>✦</span> Key insights</a>
       <a href="#trends" class="nav-link"><span>⌁</span> Activity trends</a>
+      <a href="#reliability" class="nav-link"><span>◷</span> Data reliability</a>
       <a href="#geography" class="nav-link"><span>⬡</span> Geographic view</a>
+      <a href="#methodology" class="nav-link"><span>≋</span> How to use</a>
       <div class="sidebar-bottom"><span class="pulse"></span> Based on public EMS records <p>Independent educational analysis. Not an official Cleveland EMS dashboard.</p></div>
     </aside>
     <main id="overview" class="main">
@@ -39,7 +43,7 @@
         <div class="hero-copy">
           <div class="eyebrow"><span class="eyebrow-dot"></span> CITY OPERATIONS / OPEN DATA EXPLORER</div>
           <h1>Cleveland EMS <em>at a glance.</em></h1>
-          <p>An interactive look at published EMS dispatch records — when they appear, how activity varies, and where the data leaves important questions unanswered.</p>
+          <p>Explore Cleveland’s published EMS dispatch activity, spot patterns worth investigating, and understand whether the latest records are ready to interpret.</p>
           <div class="hero-pills"><span class="hero-pill">Public records</span><span class="hero-pill">Daily snapshots</span><span class="hero-pill">Independent analysis</span></div>
         </div>
         <div class="hero-stamp" aria-hidden="true">
@@ -78,7 +82,7 @@
         <div class="section-heading"><div>
           <div class="overline">A CLOSER LOOK</div>
           <h2 id="insights-title">What the records reveal</h2>
-          <p>Highlights calculated from the selected published records, not estimates of unique emergencies.</p>
+          <p>Filtered observations that help you ask better questions—not estimates of unique emergencies or recommendations for EMS operations.</p>
         </div><span class="section-index">01 — INSIGHTS</span></div>
         <div class="insights-grid" aria-live="polite">
           <article class="insight-card insight-teal">
@@ -100,14 +104,87 @@
             <div class="insight-bottom">CALL-TO-SCENE TIME PAIRS</div>
           </article>
         </div>
+        <article class="analyst-brief" aria-label="Interpretation of the selected records">
+          <div class="brief-icon" aria-hidden="true">✦</div>
+          <div class="brief-content"><div class="overline">ANALYST'S NOTE</div>
+            <h3 id="brief-title">What should I look at?</h3>
+            <p id="brief-detail">Loading an interpretation of the selected time window.</p>
+            <p id="brief-caveat" class="brief-caveat">Source rows are not verified unique emergencies.</p>
+          </div>
+        </article>
       </section>
-      <section id="trends" class="two-col"><article class="panel wide"><div class="panel-header"><div><div class="overline">01 / ACTIVITY</div><h2>Published dispatch records by day</h2><p>Source rows by dispatch date within your selected period.</p></div><div class="panel-actions"><span class="tag">DAILY</span><button type="button" id="download-daily" class="small-action" title="Download the aggregated daily counts as CSV">Export CSV <span aria-hidden="true">↗</span></button></div></div><div class="chart-wrap"><canvas id="volume-chart" aria-label="Daily published dispatch record counts" role="img"></canvas></div><p class="data-quality-note" role="note">Recent dates may be incomplete or updated later by the source. These are published records, not verified unique incidents; do not infer a sudden change in demand from the latest points alone.</p></article><article class="panel narrow"><div class="panel-header"><div><div class="overline">02 / PRIORITY</div><h2>Priority mix</h2><p>Published dispatch records by priority code.</p></div></div><div class="chart-wrap donut-wrap"><canvas id="priority-chart" aria-label="Call counts by priority" role="img"></canvas></div></article></section>
-      <section class="two-col second-row"><article class="panel"><div class="panel-header"><div><div class="overline">03 / TIMING</div><h2>Recorded dispatches by hour</h2><p>Published record counts · Cleveland local time (Eastern).</p></div></div><div class="chart-wrap"><canvas id="hour-chart" aria-label="Calls by dispatch hour" role="img"></canvas></div></article><article id="geography" class="panel"><div class="panel-header"><div><div class="overline">04 / GEOGRAPHY</div><h2>Neighborhood overview</h2><p>Verified area totals, when available.</p></div><span class="tag">VECTOR MAP</span></div><div id="map" aria-label="Cleveland neighborhood boundary map" role="img"></div>
+      <section id="trends" class="two-col"><article class="panel wide"><div class="panel-header"><div><div class="overline">01 / ACTIVITY</div><h2>Published dispatch records by day</h2><p>Source rows by dispatch date within your selected period.</p></div><div class="panel-actions"><span class="tag">DAILY</span><button type="button" id="download-daily" class="small-action" title="Download the aggregated daily counts as CSV">Export CSV <span aria-hidden="true">↗</span></button></div></div><div class="chart-wrap"><canvas id="volume-chart" aria-label="Daily published dispatch record counts" role="img"></canvas></div><div class="chart-key" role="note"><span class="chart-key-chip"><span class="chart-key-dash"></span> Dashed = recent, unverified reporting period</span><span>Older dates may also be revised</span></div>
+<p class="data-quality-note" role="note" id="trend-warning">Recent dates may be incomplete or revised. Published rows do not equal verified unique incidents; do not interpret a sharp decline as fewer emergencies without checking source publication history.</p></article><article class="panel narrow"><div class="panel-header"><div><div class="overline">02 / PRIORITY</div><h2>Priority mix</h2><p>Published dispatch records by priority code.</p></div></div><div class="chart-wrap donut-wrap"><canvas id="priority-chart" aria-label="Call counts by priority" role="img"></canvas></div></article></section>
+      <section id="reliability" class="reliability-section" aria-labelledby="reliability-heading">
+        <div class="section-heading"><div>
+          <div class="overline">DATA YOU CAN TRUST MORE CAREFULLY</div>
+          <h2 id="reliability-heading">Is the recent drop real?</h2>
+          <p>Published records may arrive or change after the dispatch date. Track that before interpreting a decline.</p>
+        </div><span class="section-index">02 — REPORTING LAG</span></div>
+        <div class="reliability-grid">
+          <article class="reliability-explainer">
+            <span class="reliability-overline">LATEST DATE CHECK</span>
+            <div class="reliability-number" id="recent-count">—</div>
+            <p id="recent-context">Comparing the latest published date with earlier observed days.</p>
+            <div class="reliability-banner"><span aria-hidden="true">!</span> <strong>Not a demand forecast:</strong> low recent counts can reflect publication or import delays.</div>
+          </article>
+          <article class="reliability-history">
+            <div class="reliability-history-head">
+              <div><strong>Publication change monitor</strong><p id="history-status">Checking successive daily snapshots…</p></div>
+              <span class="tag">DAILY AUDIT</span>
+            </div>
+            <div id="history-rows" class="history-rows" aria-live="polite"><p>Looking for observed revisions to earlier dispatch dates.</p></div>
+            <p class="history-footnote" id="history-footnote">We can only measure revisions after history collection begins. No date is labeled complete without evidence.</p>
+          </article>
+        </div>
+      </section>
+      <section class="two-col second-row"><article class="panel"><div class="panel-header"><div><div class="overline">03 / TIMING</div><h2>Recorded dispatches by hour</h2><p>Published record counts · Cleveland local time (Eastern).</p></div></div><div class="chart-wrap"><canvas id="hour-chart" aria-label="Calls by dispatch hour" role="img"></canvas></div></article><article id="geography" class="panel"><div class="panel-header"><div><div class="overline">04 / GEOGRAPHY</div><h2>Explore Cleveland neighborhoods</h2><p>Reference map of official neighborhood boundaries. EMS call totals appear only after verified assignments are available.</p></div><span class="tag">BOUNDARY MAP</span></div><div class="geo-controls">
+              <label for="neighborhood-select">Select a neighborhood</label>
+              <select id="neighborhood-select" disabled><option value="">Loading neighborhood boundaries…</option></select>
+              <button id="neighborhood-reset" type="button" disabled>Reset view</button>
+            </div>
+            <div id="map" aria-label="Interactive reference map showing official Cleveland neighborhood boundaries; not EMS incident locations"></div>
+            <div id="selected-neighborhood" class="selected-neighborhood" aria-live="polite">
+              <span class="selected-neighborhood-eyebrow">NEIGHBORHOOD EXPLORER</span>
+              <h3 id="selected-neighborhood-name">Select an area on the map</h3>
+              <p id="selected-neighborhood-copy">Choose a neighborhood to explore its official boundary. Verified EMS counts are not currently available for most areas.</p>
+            </div>
 <div class="map-caption" id="map-status" role="status">Loading neighborhood outlines…</div>
 <div id="map-legend" class="map-legend" hidden><span>Lower verified call count</span><div class="legend-ramp"></div><span>Higher</span></div>
 <p class="map-note" id="map-explainer">Checking whether verified area totals are available…</p>
-<h3 class="area-title">Neighborhood ranking</h3><ol class="area-ranking" id="area-ranking"><li class="area-empty">Checking availability…</li></ol></article></section>
-      <footer><span id="coverage">Source coverage: waiting for first import</span><p>Call-to-event intervals are exploratory, <strong>not</strong> official EMS response-time performance metrics. Source records may be delayed or corrected; one emergency incident may have multiple source rows.</p></footer>
+<h3 class="area-title">Verified neighborhood totals (only where available)</h3><ol class="area-ranking" id="area-ranking"><li class="area-empty">Checking availability…</li></ol></article></section>
+      <section id="methodology" class="methodology-section" aria-labelledby="methodology-title">
+        <div class="section-heading"><div>
+          <div class="overline">FROM CHARTS TO DECISIONS</div>
+          <h2 id="methodology-title">What can you do with these findings?</h2>
+          <p>Use the dashboard to prioritize questions and data checks—not to make unsupported operational decisions.</p>
+        </div><span class="section-index">03 — PRACTICAL USE</span></div>
+        <div class="decision-grid">
+          <article class="decision-card"><span class="decision-icon" aria-hidden="true">01</span>
+            <h3>Investigate timing patterns</h3>
+            <p>Find hours and weekdays with more published dispatch activity, then compare multiple historical periods before forming a hypothesis about demand.</p>
+            <strong>Useful for:</strong><span>Choosing which time periods deserve closer analysis.</span>
+          </article>
+          <article class="decision-card"><span class="decision-icon" aria-hidden="true">02</span>
+            <h3>Check whether trends are reliable</h3>
+            <p>Use the reporting-history monitor to determine whether older dates gain or lose records after daily imports.</p>
+            <strong>Useful for:</strong><span>Deciding which apparent trends need a data-quality warning.</span>
+          </article>
+          <article class="decision-card"><span class="decision-icon" aria-hidden="true">03</span>
+            <h3>Identify gaps before analysis</h3>
+            <p>Compare valid timestamp-pair coverage and distinguish verified neighborhood assignments from a reference-only map.</p>
+            <strong>Useful for:</strong><span>Choosing defensible metrics and deciding what additional data is required.</span>
+          </article>
+        </div>
+        <div class="methodology-bar">
+          <div><strong>What this does not establish</strong><p>No verified unique incident counts, geographic hotspots, actual ambulance availability, staffing requirements, or official response-time performance metrics.</p></div>
+          <a href="https://github.com/Rousan21/cleveland-ems-analytics" target="_blank" rel="noopener noreferrer">Review methods and code ↗</a>
+        </div>
+      </section>
+      <footer class="site-footer">
+        <div class="footer-attribution"><strong>Cleveland EMS Analytics</strong><span>Independent project by <strong>Adam Al-Rousan</strong> · <a href="https://github.com/Rousan21/cleveland-ems-analytics" target="_blank" rel="noopener noreferrer">GitHub &amp; source code ↗</a></span><span id="coverage">Source coverage: waiting for first import</span></div>
+        <p>Not affiliated with or endorsed by Cleveland EMS. Call-to-event intervals are exploratory—not official response-time measures. Published dispatch rows may contain multiple records per emergency and can be delayed or corrected.</p>
+      </footer>
     </main>
   </div>
 </body>
