@@ -37,6 +37,7 @@ jobs:
           EMS_DATABASE_URL: ${{ secrets.EMS_DATABASE_URL }}
         run: python webapp/export_static.py --output site_build
       - name: Publish to Cloudflare preview branch (not production)
+        id: deploy
         uses: cloudflare/wrangler-action@v4
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -48,7 +49,10 @@ jobs:
         run: python -m pip install playwright
       - name: Inspect real preview map at desktop/mobile sizes
         if: github.head_ref == 'dashboard-v6-real-cleveland-data'
-        run: python webapp/browser_map_audit.py --url "https://dashboard-v6-real-cleveland.cleveland-ems-explorer.pages.dev" --output map_browser_report
+        env:
+          # Use immutable deployment URL to avoid stale branch-alias caching.
+          PREVIEW_URL: ${{ steps.deploy.outputs.deployment-url || 'https://dashboard-v6-real-cleveland.cleveland-ems-explorer.pages.dev' }}
+        run: python webapp/browser_map_audit.py --url "$PREVIEW_URL" --output map_browser_report
       - name: Save map preview screenshots
         if: always() && github.head_ref == 'dashboard-v6-real-cleveland-data'
         uses: actions/upload-artifact@v4
