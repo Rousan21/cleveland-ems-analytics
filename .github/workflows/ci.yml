@@ -17,6 +17,8 @@ jobs:
           cache-dependency-path: webapp/requirements.txt
       - run: python -m pip install -r requirements.txt
       - run: pytest -q
+      - name: Validate official Cleveland EMS source metadata
+        run: python audit_cleveland_source.py
       - name: Validate browser JavaScript syntax
         run: |
           node --check static/dashboard.js
