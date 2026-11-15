@@ -80,12 +80,47 @@ def diagnose(url, save_to):
             if errors:
                 raise AssertionError(f"{label}: browser runtime errors: {errors[:4]}")
 
+            # Verify the trend does not connect incomplete rolling-window
+            # endpoints as if they were complete calendar dates.
+            trend=page.evaluate("""() => {
+              const d=state.currentData||{};
+              const chart=state.charts['volume-chart'];
+              return {
+                source:d.source_item_id,
+                rawFirst:d.daily?.[0]?.date,
+                rawLast:d.daily?.at(-1)?.date,
+                plottedFirst:chart?.data.labels?.[0],
+                plottedLast:chart?.data.labels?.at(-1),
+                plottedCount:chart?.data.labels?.length||0,
+                excluded:d.daily_chart_excluded?.map(v=>v.date)||[],
+                note:document.querySelector('#daily-chart-note')?.textContent||'',
+              };
+            }""")
+            print("DAILY TREND",label,json.dumps(trend,sort_keys=True),flush=True)
+            if trend["source"] != "d5d71757cc73400d843c98bcb46e46b6" or trend["plottedCount"] < 3:
+                raise AssertionError(f"{label}: wrong source or no daily trend: {trend}")
+            if (trend["plottedFirst"] in trend["excluded"] or
+                    trend["plottedLast"] in trend["excluded"]):
+                raise AssertionError(f"{label}: plotted a partial boundary date: {trend}")
+            if len(trend["excluded"]) >= 2 and (
+                    trend["plottedFirst"] == trend["rawFirst"] or
+                    trend["plottedLast"] == trend["rawLast"]):
+                raise AssertionError(f"{label}: first/latest incomplete date still appears: {trend}")
+            if "complete Cleveland-local" not in trend["note"]:
+                raise AssertionError(f"{label}: incomplete day explanation missing: {trend}")
+            page.locator('#trends').scroll_into_view_if_needed()
+            page.screenshot(path=str(Path(save_to)/f"{label}-daily-trend.png"),full_page=False)
+            page.locator('#geography').scroll_into_view_if_needed()
             page.screenshot(path=str(Path(save_to)/f"{label}.png"),full_page=False)
             if result.get("hasMap"):
                 dropdown=page.locator("#neighborhood-select")
                 if dropdown.is_enabled():
                     dropdown.select_option(label="Downtown")
                     page.wait_for_timeout(600)
+                    local_type=page.locator('#area-type-value').inner_text()
+                    print("NEIGHBORHOOD TYPE",label,local_type,flush=True)
+                    if local_type in ("", "Choose a neighborhood", "Select a neighborhood"):
+                        raise AssertionError(f"{label}: selected Downtown has no area-specific incident-type output")
                     print("MAP SELECT",label,json.dumps(page.evaluate(JS),sort_keys=True),flush=True)
                     page.screenshot(path=str(Path(save_to)/f"{label}-downtown.png"),full_page=False)
             page.close()
