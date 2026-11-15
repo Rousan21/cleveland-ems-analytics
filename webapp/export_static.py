@@ -63,6 +63,7 @@ def build_site(output: Path):
             stats = summarize(window=window, priority=priority, now=now)
             if window == "30d" and priority == "all" and not stats["total_stored"]:
                 raise RuntimeError("Database is empty; refusing to deploy an empty dashboard")
+            stats["snapshot_generated_at"] = now.isoformat()
             write_json(output / "api" / "summary" / window / f"{priority}.json", stats)
 
             areas = get_area_summary(window=window, priority=priority, now=now)

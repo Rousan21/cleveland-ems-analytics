@@ -51,7 +51,11 @@ def summarize(*, window="30d", priority="all", start_date=None, end_date=None, n
     # Stream ORM rows in batches. Loading years of EMS records with .all()
     # would exhaust a small free Render instance's memory unnecessarily.
     with SessionLocal() as db:
-        query = select(EMSCall).where(EMSCall.dispatch_time.is_not(None), EMSCall.dispatch_time < end)
+        # Fetch only columns needed for aggregation. Avoid ORM object construction and
+        # transferring incident-level geography from Neon for every dashboard query.
+        query = select(
+            EMSCall.priority, EMSCall.call_time, EMSCall.dispatch_time, EMSCall.scene_time
+        ).where(EMSCall.dispatch_time.is_not(None), EMSCall.dispatch_time < end)
         if start:
             query = query.where(EMSCall.dispatch_time >= start)
         if priority != "all":
@@ -66,7 +70,7 @@ def summarize(*, window="30d", priority="all", start_date=None, end_date=None, n
         last_sync_failed = bool(last_attempt and last_attempt.status != "success")
 
         # yield_per streams database rows rather than retaining large ORM lists.
-        for call in db.scalars(query).yield_per(1000):
+        for call in db.execute(query).yield_per(1000):
             count += 1
             dispatched = as_utc(call.dispatch_time).astimezone(LOCAL)
             day = dispatched.date().isoformat()
@@ -91,6 +95,10 @@ def summarize(*, window="30d", priority="all", start_date=None, end_date=None, n
         "records": count, "total_stored": total_stored,
         "median_call_to_dispatch_min": round(median(dispatch_intervals), 1) if dispatch_intervals else None,
         "median_call_to_scene_min": round(median(scene_intervals), 1) if scene_intervals else None,
+        "interval_sample_counts": {
+            "call_to_dispatch": len(dispatch_intervals),
+            "call_to_scene": len(scene_intervals),
+        },
         "daily": [{"date": k, "count": daily[k]} for k in sorted(daily)],
         "hours": [{"hour": int(k), "count": v} for k, v in by_hour.items()],
         "priorities": [{"priority": k, "count": v} for k, v in sorted(by_priority.items())],

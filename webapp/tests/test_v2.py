@@ -60,9 +60,26 @@ def test_time_windows_and_priorities():
         assert priority['records'] == 1
         assert priority['median_call_to_dispatch_min'] == 2.0
         assert priority['median_call_to_scene_min'] == 12.0
+        assert priority['interval_sample_counts'] == {'call_to_dispatch': 1, 'call_to_scene': 1}
         assert client.get('/api/summary?priority=9').status_code == 422
         assert client.get('/api/summary?window=garbage').status_code == 422
         assert client.get('/api/summary?window=custom&start=2026-12-01&end=2026-01-01').status_code == 422
+
+
+def test_timing_completeness_excludes_missing_and_invalid_pairs():
+    now = datetime.now(timezone.utc) - timedelta(hours=2)
+    valid = example_call(1, now)
+    missing_scene = example_call(2, now)
+    missing_scene.scene_time = None
+    backwards = example_call(3, now)
+    backwards.call_time = now + timedelta(minutes=30)  # After dispatch and on-scene
+    with SessionLocal() as db:
+        db.add_all([valid, missing_scene, backwards])
+        db.commit()
+    result = summarize(window='24h')
+    assert result['records'] == 3
+    assert result['interval_sample_counts'] == {'call_to_dispatch': 2, 'call_to_scene': 1}
+    assert result['median_call_to_scene_min'] == 12.0
 
 
 def test_custom_boundaries_across_daylight_savings():
