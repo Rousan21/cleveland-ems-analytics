@@ -136,9 +136,12 @@ def get_ems_stations(*, client=None):
             })
         stations.sort(key=lambda item: item["name"].casefold())
         if not (1 <= len(stations) <= 100):
+            first = features[0] if features else {}
             print(
                 f"EMS station GIS: no accepted facilities; provider features={len(features)}; "
-                f"spatialReference={payload.get('spatialReference')}",
+                f"spatialReference={payload.get('spatialReference')}; "
+                f"attribute fields={list((first.get('attributes') or first.get('properties') or {}).keys())}; "
+                f"geometry sample={(first.get('geometry') or {})}",
                 flush=True,
             )
             return unavailable
