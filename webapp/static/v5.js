@@ -68,13 +68,13 @@
         "Choose a neighborhood boundary to see facilities located inside it. Historical EMS facility listings may be outdated and do not measure call volume or emergency coverage.";
       byId("geo-next-copy").textContent = stationRows.length
         ? "Click a catalog facility marker for its historical name and address (as of the source's 2021 vintage). Call locations are never plotted."
-        : "Neighborhood outlines are geographic references. Facility markers appear if the official station layer is available.";
+        : "Neighborhood outlines are geographic references. Facility markers appear if the historical national catalog is available.";
     } else {
       const areaInfo = total
         ? `${fmt(total.count)} verified, aggregated dispatch rows have been assigned to this neighborhood for the selected filters. `
         : "EMS call totals for this neighborhood are not validated or are suppressed. Gray does not mean zero. ";
       const stationInfo = stationRows.length
-        ? `${fmt(nearbyStations.length)} published EMS station ${nearbyStations.length === 1 ? "location" : "locations"} fall within its mapped boundary.`
+        ? `${fmt(nearbyStations.length)} 2021 catalog-listed EMS ${nearbyStations.length === 1 ? "facility" : "facilities"} fall within its mapped boundary.`
         : "Historical facility reference data unavailable.";
       description.textContent = areaInfo + stationInfo;
       byId("geo-next-copy").textContent = nearbyStations.length
