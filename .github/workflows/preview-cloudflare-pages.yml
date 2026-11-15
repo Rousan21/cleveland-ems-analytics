@@ -18,7 +18,7 @@ jobs:
     # Only trusted same-repository branches can access deployment/database secrets.
     if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -28,6 +28,10 @@ jobs:
           cache-dependency-path: webapp/requirements.txt
       - name: Install dependencies
         run: python -m pip install -r webapp/requirements.txt
+      - name: Bootstrap verified Cleveland source records (safe additive table)
+        env:
+          EMS_DATABASE_URL: ${{ secrets.EMS_DATABASE_URL }}
+        run: python webapp/cleveland_pipeline.py bootstrap --days 400
       - name: Build precomputed privacy-safe snapshots
         env:
           EMS_DATABASE_URL: ${{ secrets.EMS_DATABASE_URL }}
