@@ -74,10 +74,11 @@ STATIONS_URL = (
 
 
 def get_ems_stations(*, client=None):
-    """Get named public EMS facilities with validated WGS84 coordinates.
+    """Fetch public EMS station facilities from the official ArcGIS point layer.
 
-    Fail gracefully if ArcGIS is unavailable. Never derive incident locations
-    from station positions or suggest an unsupported coverage radius.
+    ArcGIS REST's native JSON is more broadly supported than GeoJSON for this
+    hosted service. Response is reduced to name, public address and WGS84 point;
+    we never transfer EMS calls, patient addresses or record identifiers.
     """
     unavailable = {
         "status": "unavailable", "stations": [],
@@ -87,25 +88,38 @@ def get_ems_stations(*, client=None):
     try:
         response = (client or requests).get(STATIONS_URL, params={
             "where": "1=1", "outFields": "EMS_STATION,ADDRESS",
-            "returnGeometry": "true", "outSR": 4326, "f": "geojson",
+            "returnGeometry": "true", "outSR": 4326, "f": "json",
             "resultRecordCount": 500,
         }, timeout=30)
         response.raise_for_status()
         payload = response.json()
-        if payload.get("type") != "FeatureCollection":
+        if not isinstance(payload, dict):
+            print("EMS station GIS: expected a JSON object", flush=True)
+            return unavailable
+        if payload.get("error"):
+            print("EMS station GIS: provider returned an error object", flush=True)
+            return unavailable
+        features = payload.get("features")
+        if not isinstance(features, list):
+            print(f"EMS station GIS: missing features array (keys: {list(payload)[:8]})", flush=True)
             return unavailable
         stations = []
         seen = set()
-        for feature in payload.get("features", []):
-            props = feature.get("properties") or {}
+        for feature in features:
+            props = feature.get("attributes") or feature.get("properties") or {}
             geom = feature.get("geometry") or {}
-            coord = geom.get("coordinates")
-            if geom.get("type") != "Point" or not isinstance(coord, list) or len(coord) < 2:
-                continue
-            lon, lat = coord[:2]
+            # Native ArcGIS JSON response: {geometry:{x:lon, y:lat}}.
+            # Retain GeoJSON handling for portable fixtures and future providers.
+            if geom.get("type") == "Point":
+                coord = geom.get("coordinates")
+                if not isinstance(coord, list) or len(coord) < 2:
+                    continue
+                lon, lat = coord[:2]
+            else:
+                lon, lat = geom.get("x"), geom.get("y")
             if not all(isinstance(v, (int, float)) and not isinstance(v, bool) for v in [lon, lat]):
                 continue
-            # Exclude coordinates clearly outside the Cleveland metro area.
+            # The service must return longitude/latitude through outSR=4326.
             if not (-82.4 <= lon <= -81.0 and 40.8 <= lat <= 42.1):
                 continue
             name = str(props.get("EMS_STATION") or "").strip()
@@ -122,6 +136,11 @@ def get_ems_stations(*, client=None):
             })
         stations.sort(key=lambda item: item["name"].casefold())
         if not (1 <= len(stations) <= 100):
+            print(
+                f"EMS station GIS: no accepted facilities; provider features={len(features)}; "
+                f"spatialReference={payload.get('spatialReference')}",
+                flush=True,
+            )
             return unavailable
         return {
             "status": "ready", "stations": stations,
@@ -129,9 +148,9 @@ def get_ems_stations(*, client=None):
             "note": ("Public station locations are contextual facilities, not call "
                      "sites, service areas, availability, or evidence of response coverage."),
         }
-    except (requests.RequestException, ValueError, KeyError, TypeError):
+    except (requests.RequestException, ValueError, KeyError, TypeError) as exc:
+        print(f"EMS station GIS: {type(exc).__name__} fetching public facilities", flush=True)
         return unavailable
-
 
 def get_area_summary(*, window='30d', priority='all', start_date=None, end_date=None, now=None):
     """Aggregate only *verified* area assignments; suppress small values.
