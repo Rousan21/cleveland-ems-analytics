@@ -63,6 +63,7 @@ def test_official_station_geometries_are_reduced_to_public_facilities():
     assert "222222" not in str(result)
     _, params, _ = client.calls[0]
     assert params["outFields"] == "EMS_STATION,ADDRESS"
+    assert params["f"] == "json"
     assert params["outSR"] == 4326
     assert params["returnGeometry"] == "true"
 
@@ -71,3 +72,23 @@ def test_station_service_failures_never_publish_invented_markers():
     result = get_ems_stations(client=FakeStationClient({"error":{"message":"offline"}}))
     assert result["status"] == "unavailable"
     assert result["stations"] == []
+
+
+def test_native_arcgis_point_response_supports_public_facility_markers():
+    client = FakeStationClient({
+        "geometryType": "esriGeometryPoint",
+        "spatialReference": {"wkid": 4326},
+        "features": [
+            {"attributes": {"EMS_STATION": "Public EMS Station 2",
+                            "ADDRESS": "PUBLIC STATION ADDRESS"},
+             "geometry": {"x": -81.67, "y": 41.48}},
+            {"attributes": {"EMS_STATION": "Bad geometry"},
+             "geometry": {"x": 2000000, "y": 500000}},
+        ]
+    })
+    result = get_ems_stations(client=client)
+    assert result["status"] == "ready"
+    assert len(result["stations"]) == 1
+    assert result["stations"][0]["name"] == "Public EMS Station 2"
+    assert result["stations"][0]["lat"] == 41.48
+    assert result["stations"][0]["lon"] == -81.67
