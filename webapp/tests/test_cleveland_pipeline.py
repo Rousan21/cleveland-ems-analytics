@@ -121,7 +121,10 @@ def test_neighborhood_ranking_and_privacy_threshold():
     assert result["eligible_records"]==17
     assert result["mapped_records"]==16
     assert result["unmapped_records"]==1
-    assert result["areas"]==[{"name":"Ohio City","count":12}]
+    assert result["areas"]==[{
+        "name":"Ohio City","count":12,
+        "top_incident_type":"Medical","top_incident_type_count":12,
+    }]
     assert "Tremont" not in str(result["areas"])
     assert result["mapping_coverage_pct"]==94.1
 
@@ -148,3 +151,56 @@ def test_source_contract_fails_if_required_field_disappears():
             return super().get(url,params,timeout)
     with pytest.raises(RuntimeError,match="schema changed"):
         sync_data(days=30,session=WrongSchema([]))
+
+
+def test_partial_rolling_window_dates_are_excluded_from_comparative_chart():
+    """A four-hour first day and eight-row current day must not look like drops."""
+    fixed=datetime(2026,11,15,22,0,tzinfo=timezone.utc)
+    from cleveland_pipeline import select_comparable_calendar_days
+    from datetime import timedelta
+
+    start=fixed-timedelta(days=30)
+    counts={
+        "2026-10-16":68,       # first date includes only local evening
+        "2026-10-17":291,
+        "2026-11-14":289,
+        "2026-11-15":8,        # newest local date incomplete
+    }
+    plotted, dropped, note=select_comparable_calendar_days(
+        counts, window="30d",start=start,end=fixed
+    )
+    assert [r["date"] for r in plotted]==["2026-10-17","2026-11-14"]
+    assert [r["date"] for r in dropped]==["2026-10-16","2026-11-15"]
+    assert "complete Cleveland-local" in note
+    assert sum(r["count"] for r in plotted)==580
+    assert sum(counts.values())==656  # total still reflects full selection
+
+
+def test_rolling_past_day_is_not_presented_as_full_calendar_comparison():
+    from cleveland_pipeline import select_comparable_calendar_days
+    fixed=datetime(2026,11,15,22,0,tzinfo=timezone.utc)
+    data={"2026-11-14":12,"2026-11-15":25}
+    displayed,dropped,note=select_comparable_calendar_days(
+        data,window="24h",start=fixed-timedelta(days=1),end=fixed
+    )
+    assert len(displayed)==2
+    assert dropped==[]
+    assert "partial" in note.lower()
+
+
+def test_neighborhood_top_incident_type_is_suppressed_below_11():
+    now=datetime.now(timezone.utc)-timedelta(hours=4)
+    with SessionLocal() as db:
+        db.add_all([
+            ClevelandRecord(object_id=i,incident_time=now,neighborhood="Ohio City",
+                            priority="3",incident_type="Sick Person" if i<=10 else "Falls",
+                            dispatch_flag="true",transport_flag="false")
+            for i in range(1,16)
+        ])
+        db.commit()
+    result=area_summary(window="7d",priority="3",known_neighborhoods=["Ohio City"])
+    assert result["areas"] == [{
+        "name":"Ohio City","count":15,
+        "top_incident_type":None,"top_incident_type_count":None
+    }]
+    assert "Sick Person" not in str(result["areas"])
