@@ -65,94 +65,81 @@ def get_boundaries(*, client=None, refresh=False):
         raise
 
 
-# Public EMS station *facilities*, not call locations. Official Cleveland GIS
-# layer: EMS_Stations/FeatureServer/0. No incident coordinates are published.
+# Optional reference facilities from a national historical EMS station catalog.
+# This service is NOT the City of Cleveland government and is not a reliable
+# roster of current Cleveland Division of EMS bases. Vintaged in 2021.
 STATIONS_URL = (
-    "https://services7.arcgis.com/RLKshC6KfXm2kCVy/ArcGIS/rest/services/"
-    "EMS_Stations/FeatureServer/0/query"
+    "https://services5.arcgis.com/HDRa0B57OVrv2E1q/ArcGIS/rest/services/"
+    "Emergency_Medical_Service_Stations/FeatureServer/0/query"
 )
 
 
 def get_ems_stations(*, client=None):
-    """Fetch public EMS station facilities from the official ArcGIS point layer.
+    """Return public historical EMS facility catalog entries for Cleveland, OH.
 
-    ArcGIS REST's native JSON is more broadly supported than GeoJSON for this
-    hosted service. Response is reduced to name, public address and WGS84 point;
-    we never transfer EMS calls, patient addresses or record identifiers.
+    These reference facilities may include private ambulance providers and may
+    be outdated. Do NOT treat them as current Cleveland EMS bases, dispatch
+    incidents, ambulances in service, response territories or capacity.
     """
+    source = "National historical EMS facility reference catalog (last edited 2021)"
     unavailable = {
-        "status": "unavailable", "stations": [],
-        "source": "City of Cleveland public EMS Stations feature layer",
-        "note": "Station positions unavailable; these are not incident locations.",
+        "status": "unavailable", "stations": [], "source": source,
+        "note": "Historical facility references unavailable; do not infer call locations.",
     }
     try:
         response = (client or requests).get(STATIONS_URL, params={
-            "where": "1=1", "outFields": "EMS_STATION,ADDRESS",
+            "where": "STATE = 'OH' AND UPPER(CITY) = 'CLEVELAND'",
+            "outFields": "NAME,ADDRESS,CITY,STATE",
             "returnGeometry": "true", "outSR": 4326, "f": "json",
             "resultRecordCount": 500,
         }, timeout=30)
         response.raise_for_status()
         payload = response.json()
-        if not isinstance(payload, dict):
-            print("EMS station GIS: expected a JSON object", flush=True)
-            return unavailable
-        if payload.get("error"):
-            print("EMS station GIS: provider returned an error object", flush=True)
+        if not isinstance(payload, dict) or payload.get("error"):
+            print("Historical EMS facility GIS: invalid/error response", flush=True)
             return unavailable
         features = payload.get("features")
         if not isinstance(features, list):
-            print(f"EMS station GIS: missing features array (keys: {list(payload)[:8]})", flush=True)
+            print("Historical EMS facility GIS: missing features array", flush=True)
             return unavailable
         stations = []
         seen = set()
         for feature in features:
-            props = feature.get("attributes") or feature.get("properties") or {}
+            props = feature.get("attributes") or {}
             geom = feature.get("geometry") or {}
-            # Native ArcGIS JSON response: {geometry:{x:lon, y:lat}}.
-            # Retain GeoJSON handling for portable fixtures and future providers.
-            if geom.get("type") == "Point":
-                coord = geom.get("coordinates")
-                if not isinstance(coord, list) or len(coord) < 2:
-                    continue
-                lon, lat = coord[:2]
-            else:
-                lon, lat = geom.get("x"), geom.get("y")
-            if not all(isinstance(v, (int, float)) and not isinstance(v, bool) for v in [lon, lat]):
+            lon, lat = geom.get("x"), geom.get("y")
+            if str(props.get("STATE") or "").upper() != "OH":
                 continue
-            # The service must return longitude/latitude through outSR=4326.
+            if str(props.get("CITY") or "").strip().casefold() != "cleveland":
+                continue
+            if not all(isinstance(v, (int, float)) and not isinstance(v, bool) for v in (lon, lat)):
+                continue
             if not (-82.4 <= lon <= -81.0 and 40.8 <= lat <= 42.1):
                 continue
-            name = str(props.get("EMS_STATION") or "").strip()
-            if not name or len(name) > 90:
-                continue
+            name = str(props.get("NAME") or "").strip()[:100]
             address = str(props.get("ADDRESS") or "").strip()[:120]
+            if not name:
+                continue
             key = (name.casefold(), round(lon, 6), round(lat, 6))
             if key in seen:
                 continue
             seen.add(key)
             stations.append({
-                "name": name, "address": address,
-                "lat": round(lat, 6), "lon": round(lon, 6),
+                "name": name, "address": address, "lat": round(lat, 6),
+                "lon": round(lon, 6),
             })
         stations.sort(key=lambda item: item["name"].casefold())
         if not (1 <= len(stations) <= 100):
-            first = features[0] if features else {}
-            print(
-                f"EMS station GIS: no accepted facilities; provider features={len(features)}; "
-                f"spatialReference={payload.get('spatialReference')}; "
-                f"attribute fields={list((first.get('attributes') or first.get('properties') or {}).keys())}; "
-                f"geometry sample={(first.get('geometry') or {})}",
-                flush=True,
-            )
+            print(f"Historical EMS facility GIS: {len(features)} returned, {len(stations)} accepted", flush=True)
             return unavailable
         return {
-            "status": "ready", "stations": stations,
-            "source": "City of Cleveland public EMS Stations feature layer",
-            "note": ("Public station locations are contextual facilities, not call "
-                     "sites, service areas, availability, or evidence of response coverage."),
+            "status": "ready", "stations": stations, "source": source,
+            "note": ("Historical U.S. EMS facility reference catalog, not a current "
+                     "City of Cleveland EMS station list, ambulance availability, "
+                     "call locations, or response coverage."),
         }
     except (requests.RequestException, ValueError, KeyError, TypeError) as exc:
-        print(f"EMS station GIS: {type(exc).__name__} fetching public facilities", flush=True)
+        print(f"Historical EMS facility GIS: {type(exc).__name__}", flush=True)
         return unavailable
 
 def get_area_summary(*, window='30d', priority='all', start_date=None, end_date=None, now=None):
