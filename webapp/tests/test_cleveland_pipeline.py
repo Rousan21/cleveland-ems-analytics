@@ -42,7 +42,7 @@ def test_mismatched_city_rows_rejected_and_identifiers_never_saved():
     assert row_from_attrs(virginia) is None
     record=row_from_attrs(fake_record(11,now))
     assert record["neighborhood"]=="Ohio City"
-    assert record["incident_time"]==now.replace(microsecond=0)
+    assert record["incident_time"]==now.replace(microsecond=(now.microsecond // 1000) * 1000)
     assert record["dispatch_flag"]=="true"
     assert record["transport_flag"]=="false"
     assert "PRIVATE" not in str(record)
@@ -77,22 +77,23 @@ class FakeSource:
 def test_cleveland_import_idempotent_and_does_not_read_legacy_table():
     when=datetime.now(timezone.utc)-timedelta(hours=8)
     source=FakeSource([fake_record(1,when),fake_record(2,when,city="Virginia Beach"),
-                       fake_record(3,when,priority="5",neighborhood="Tremont")])
+                       fake_record(3,when,priority="5",neighborhood="Tremont"),
+                       fake_record(4,when,priority="2",neighborhood="Ohio City")])
     result=sync_data(days=30,session=source)
-    assert result["source_rows_seen"]==3
-    assert result["cleveland_rows_upserted"]==2
+    assert result["source_rows_seen"]==4
+    assert result["cleveland_rows_upserted"]==3
     assert len(source.queries)==3
     assert "ObjectId" in source.queries[1][1]["outFields"]
     assert "EMS_Call_Number" not in source.queries[1][1]["outFields"]
     sync_data(days=30,session=FakeSource(source.rows))
     with SessionLocal() as db:
-        assert db.scalar(select(func.count(ClevelandRecord.object_id)))==2
+        assert db.scalar(select(func.count(ClevelandRecord.object_id)))==3
         assert db.scalar(select(func.count(EMSCall.object_id)))==0
         assert db.scalar(select(func.count(ClevelandSyncRun.id)))==2
     summary=summarize(window="7d")
-    assert summary["records"]==2
+    assert summary["records"]==3
     assert summary["source_item_id"]==SOURCE_ITEM_ID
-    assert summary["dispatch_flag_known"]==2
+    assert summary["dispatch_flag_known"]==3
     assert summary["transported_count"]==0
     assert summary["neighborhoods_in_source"]==2
     assert "PRIVATE" not in str(summary)
