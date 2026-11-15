@@ -19,7 +19,7 @@ An interactive dashboard for exploring the City of Cleveland's published emergen
 - **Priority filters:** explore published priority codes independently or together.
 - **Operational trends:** daily dispatch records, priority mix, and dispatch records by Cleveland-local hour.
 - **Timing analysis:** median call-to-dispatch and call-to-on-scene intervals for records with valid timestamps.
-- **Geographic explorer:** interactive official Cleveland neighborhood boundaries and public EMS station facility markers, with clickable/searchable neighborhoods.
+- **Geographic explorer:** interactive official Cleveland neighborhood boundaries and historical U.S. EMS facility catalog markers, with clickable/searchable neighborhoods.
 - **Neighborhood call-volume rankings:** available only when individually reviewed record-to-neighborhood geographic assignments exist. **No such reviewed assignments are currently in the database**, so the map does not invent high-volume areas.
 - **Data freshness:** last successful import, snapshot generation time, and newest published dispatch timestamp.
 - **Evidence-led insights:** busiest recorded dispatch hour, most common priority and timestamp-pair validity, with responsible interpretation rather than staffing or operational claims.
@@ -62,7 +62,7 @@ CI = pytest + JavaScript syntax checks
 This redesign emphasizes a genuinely useful geographic experience and a professional visual identity rather than an extensive reporting-lag investigation.
 
 - **Geographic explorer:** premium dark UI, strong visual hierarchy, map-first presentation, responsive layouts and polished data panels. Design patterns informed by Linear, Vercel and modern geospatial dashboards without reproducing proprietary UI assets.
-- **Public stations:** official City of Cleveland GIS station layer is queried during static builds. Validated WGS84 facility points are deduplicated, aggregated in the browser to their polygon boundaries where appropriate, and displayed as **facilities only**. No patient addresses or incident coordinates are exported.
+- **Historical facilities:** official historical national EMS facility catalog is queried during static builds. Validated WGS84 facility points are deduplicated, aggregated in the browser to their polygon boundaries where appropriate, and displayed as **facilities only**. No patient addresses or incident coordinates are exported. The optional national catalog was last edited in 2021, may include private providers and is **not an official current Cleveland EMS station roster**.
 - **Source limitation:** the principal EMS table includes public Block_Location strings but no spatial point or verified neighborhood column. Therefore **no actual neighborhood volume rankings** can be asserted yet. The project continues to show gray when neighborhood totals are unvalidated, never zero by assumption.
 - **Roadmap:** [Validated neighborhood call volume](VERIFIED_NEIGHBORHOOD_DATA.md) explains how to implement a reviewed and privacy-protecting join if suitable authoritative geography becomes available.
 - **Simplified narrative:** keeps concise data-quality warnings but elevates geographic discovery, aggregate trends and interpretations.
@@ -102,7 +102,7 @@ Real-world EMS source data has a nontrivial record structure. A 30-day **read-on
 
 Rather than silently deleting records or publishing an unsupported count of “unique emergencies,” the dashboard transparently reports **published dispatch records**. The most recent days may also be incomplete or revised later by the publishing system. These limitations are called out directly on the dashboard.
 
-**Map limitations:** The main EMS source is a non-spatial ArcGIS table without incident point geometry or validated neighborhood IDs. The map displays official neighborhood boundaries **and public EMS station facility locations**, neither of which establishes call-volume hotspots or ambulance service coverage. Neighborhood call counts remain unavailable until reviewed matches exist; gray means unavailable, not zero.
+**Map limitations:** The main EMS source is a non-spatial ArcGIS table without incident point geometry or validated neighborhood IDs. The map displays official neighborhood boundaries **and public EMS station facility locations**, neither of which establishes call-volume hotspots, current facilities, or ambulance service coverage. Neighborhood call counts remain unavailable until reviewed matches exist; gray means unavailable, not zero.
 
 **Privacy:** Public endpoints serve aggregates and neighborhood outlines, never raw incident locations, record identifiers, or unit-level detail. Geographic area aggregates have a minimum reporting threshold.
 
