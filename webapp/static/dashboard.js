@@ -86,7 +86,7 @@ function renderInsights(data) {
     $('insight-priority-title').textContent = 'Most common priority';
     const top = (data.priorities || []).filter(v => Number(v.count) > 0)
       .sort((a,b) => b.count - a.count)[0];
-    $('insight-priority').textContent = top ? `Priority ${top.priority}` : 'No records';
+    $('insight-priority').textContent = top ? (top.priority === 'Unknown' ? 'Uncoded' : `Priority ${top.priority}`) : 'No records';
     $('insight-priority-detail').textContent = top
       ? `${number(top.count)} published rows (${percent(top.count, count)}) carry this source priority code.`
       : 'No source priority counts for this selection.';
@@ -275,7 +275,7 @@ function downloadDailyCsv() {
   if (!data || !Array.isArray(data.daily)) return;
   const rows = ['date,published_dispatch_records',
     ...data.daily.map(row => `${row.date},${Math.trunc(Number(row.count))}`)];
-  const blob = new Blob([rows.join('\\n') + '\\n'], {type:'text/csv;charset=utf-8'});
+  const blob = new Blob([rows.join('\n') + '\n'], {type:'text/csv;charset=utf-8'});
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
