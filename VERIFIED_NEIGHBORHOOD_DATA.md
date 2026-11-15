@@ -16,7 +16,7 @@ stations to calls, or presenting misleading counts as incidence or risk.
   and can calculate privacy-suppressed area aggregates from it.
 - As of November 15, 2026, the current Neon table contains **zero** reviewed
   EMS row-to-neighborhood assignments. Accordingly, no truthful ranking exists.
-- A separate official GIS layer publishes **EMS station facility positions**.
+- A separate historical national GIS catalog publishes **EMS facility positions** (last edited in 2021), but this is not a verified current City of Cleveland station roster.
   These are not incident locations or demand measures.
 
 ## Minimum defensible method
@@ -63,7 +63,7 @@ stations to calls, or presenting misleading counts as incidence or risk.
   percentage of all **verified** rows, with source/caveat tooltips.
 - Compare two periods, excluding dates marked provisional, with at-least-11
   suppression for every published cell.
-- Show **public EMS stations** as an independent geographic reference layer,
+- Show **historical EMS facilitys** as an independent geographic reference layer,
   without inferring station service territory or resource availability.
 
 ## Data sources
@@ -72,8 +72,8 @@ stations to calls, or presenting misleading counts as incidence or risk.
   https://www.arcgis.com/home/item.html?id=d5d71757cc73400d843c98bcb46e46b6
 - Official ArcGIS EMS data table:
   https://services2.arcgis.com/CyVvlIiUfRBmMQuu/arcgis/rest/services/EMS_Calls_for_Service2/FeatureServer/0
-- Public Cleveland EMS Stations layer:
-  https://services7.arcgis.com/RLKshC6KfXm2kCVy/ArcGIS/rest/services/EMS_Stations/FeatureServer/0
+- National historical EMS facility catalog:
+  https://services5.arcgis.com/HDRa0B57OVrv2E1q/ArcGIS/rest/services/Emergency_Medical_Service_Stations/FeatureServer/0
 
 Until this validation work is performed, any map coloring neighborhood
 polygons by "EMS activity" would be unsupported by this dataset.
