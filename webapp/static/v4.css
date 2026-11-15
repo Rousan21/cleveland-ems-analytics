@@ -12,6 +12,7 @@
 .brief-content h3 {font:800 15px/1.5 Manrope,sans-serif;color:#17384a;letter-spacing:-.15px;}
 .brief-content p {font-size:12px;line-height:1.7;color:#526f80;margin-top:7px;}
 .brief-content .brief-caveat {font-size:10px;color:#7b94a2;margin-top:7px;}
+.chart-key[hidden] {display:none;}
 .chart-key {display:flex;flex-wrap:wrap;align-items:center;gap:9px 15px;
   padding:10px 0 0;font-size:10px;color:#718798;}
 .chart-key-chip {display:inline-flex;gap:8px;align-items:center;color:#385e76;font-weight:700;}
