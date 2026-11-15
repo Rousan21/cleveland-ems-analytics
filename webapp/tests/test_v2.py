@@ -10,7 +10,7 @@ os.environ['EMS_DATABASE_URL'] = f"sqlite:///{Path(TEST_DIR.name) / 'test.db'}"
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import delete, select, func
-from db import EMSCall, EMSArea, SyncRun, SessionLocal, engine, init_database
+from db import EMSCall, EMSArea, SyncRun, PublicationSnapshot, SessionLocal, engine, init_database
 from analytics import summarize, get_bounds
 from ingest import fetch_pages, row_from_attributes, sync_data
 from main import app
@@ -20,6 +20,7 @@ from main import app
 def clean_db():
     init_database()
     with engine.begin() as conn:
+        conn.execute(delete(PublicationSnapshot))
         conn.execute(delete(EMSArea))
         conn.execute(delete(EMSCall))
         conn.execute(delete(SyncRun))
