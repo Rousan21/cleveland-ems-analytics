@@ -55,7 +55,10 @@ def test_new_api_neighborhood_counts_and_privacy(monkeypatch):
         data=result.json()
         assert data["eligible_records"]==16
         assert data["mapped_records"]==16
-        assert data["areas"]==[{"name":"Ohio City","count":13}]
+        assert data["areas"]==[{
+            "name":"Ohio City","count":13,
+            "top_incident_type":"Medical","top_incident_type_count":13
+        }]
         summary=client.get("/api/summary?window=7d&priority=3").json()
         assert summary["records"]==16
         assert summary["dispatched_count"]==16
