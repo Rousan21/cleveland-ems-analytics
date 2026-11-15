@@ -5,11 +5,9 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-import export_static
-from main import app
-
 
 def test_build_static_site_preserves_filters_and_privacy(tmp_path, monkeypatch):
+    import export_static
     calls = []
 
     def fake_summary(*, window, priority, now):
@@ -56,6 +54,7 @@ def test_build_static_site_preserves_filters_and_privacy(tmp_path, monkeypatch):
 
 
 def test_cloudflare_page_origin_can_request_custom_aggregates():
+    from main import app
     for origin in (
         "https://cleveland-ems-explorer.pages.dev",
         "https://preview.cleveland-ems-explorer.pages.dev",
