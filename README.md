@@ -62,7 +62,7 @@ CI = pytest + JavaScript syntax checks
 This redesign emphasizes a genuinely useful geographic experience and a professional visual identity rather than an extensive reporting-lag investigation.
 
 - **Geographic explorer:** premium dark UI, strong visual hierarchy, map-first presentation, responsive layouts and polished data panels. Design patterns informed by Linear, Vercel and modern geospatial dashboards without reproducing proprietary UI assets.
-- **Historical facilities:** official historical national EMS facility catalog is queried during static builds. Validated WGS84 facility points are deduplicated, aggregated in the browser to their polygon boundaries where appropriate, and displayed as **facilities only**. No patient addresses or incident coordinates are exported. The optional national catalog was last edited in 2021, may include private providers and is **not an official current Cleveland EMS station roster**.
+- **Historical facilities:** historical national EMS facility catalog is queried during static builds. Validated WGS84 facility points are deduplicated, aggregated in the browser to their polygon boundaries where appropriate, and displayed as **facilities only**. No patient addresses or incident coordinates are exported. The optional national catalog was last edited in 2021, may include private providers and is **not an official current Cleveland EMS station roster**.
 - **Source limitation:** the principal EMS table includes public Block_Location strings but no spatial point or verified neighborhood column. Therefore **no actual neighborhood volume rankings** can be asserted yet. The project continues to show gray when neighborhood totals are unvalidated, never zero by assumption.
 - **Roadmap:** [Validated neighborhood call volume](VERIFIED_NEIGHBORHOOD_DATA.md) explains how to implement a reviewed and privacy-protecting join if suitable authoritative geography becomes available.
 - **Simplified narrative:** keeps concise data-quality warnings but elevates geographic discovery, aggregate trends and interpretations.
@@ -102,7 +102,7 @@ Real-world EMS source data has a nontrivial record structure. A 30-day **read-on
 
 Rather than silently deleting records or publishing an unsupported count of “unique emergencies,” the dashboard transparently reports **published dispatch records**. The most recent days may also be incomplete or revised later by the publishing system. These limitations are called out directly on the dashboard.
 
-**Map limitations:** The main EMS source is a non-spatial ArcGIS table without incident point geometry or validated neighborhood IDs. The map displays official neighborhood boundaries **and public EMS station facility locations**, neither of which establishes call-volume hotspots, current facilities, or ambulance service coverage. Neighborhood call counts remain unavailable until reviewed matches exist; gray means unavailable, not zero.
+**Map limitations:** The main EMS source is a non-spatial ArcGIS table without incident point geometry or validated neighborhood IDs. The map displays official neighborhood boundaries **and historical national EMS facility listings**, neither of which establishes call-volume hotspots, current facilities, or ambulance service coverage. Neighborhood call counts remain unavailable until reviewed matches exist; gray means unavailable, not zero.
 
 **Privacy:** Public endpoints serve aggregates and neighborhood outlines, never raw incident locations, record identifiers, or unit-level detail. Geographic area aggregates have a minimum reporting threshold.
 
@@ -131,7 +131,7 @@ webapp/                    FastAPI app, analytics, ArcGIS ingest and tests
   main.py                  Routes and HTML frontend
   analytics.py             Date-filtered public metrics
   ingest.py                Idempotent source-row upsert
-  geography.py             Neighborhood polygons, public EMS stations and verified aggregates
+  geography.py             Neighborhood polygons, 2021 national facility references and verified aggregates
   static/v5.css + v5.js    Responsive map-first interface and interactions
   audit_source.py          Read-only, aggregate data-quality diagnostics
   templates/ + static/     Dashboard interface and charts
@@ -157,7 +157,7 @@ The original Streamlit prototype is preserved in the repository as an earlier ve
 
 ## Further enhancements
 
-Potential extensions include expanding the historical backfill after checking free-tier storage, validated geographic joins for neighborhood totals, and historical monitoring of source publication delays. These are future enhancements rather than requirements for running the public dashboard.
+Potential extensions include expanding the historical backfill after checking free-tier storage, validated geographic joins for neighborhood totals, and comparable population-based denominators. These are future enhancements rather than requirements for running the public dashboard.
 
 **Data source:** [City of Cleveland Division of EMS — ArcGIS](https://www.arcgis.com/home/item.html?id=d5d71757cc73400d843c98bcb46e46b6).
 
