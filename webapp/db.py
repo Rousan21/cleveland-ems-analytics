@@ -2,8 +2,8 @@
 import os
 from pathlib import Path
 
-from datetime import datetime
-from sqlalchemy import DateTime, Integer, String, Text, create_engine
+from datetime import date, datetime
+from sqlalchemy import Date, DateTime, Integer, String, Text, create_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
 
 
@@ -31,6 +31,20 @@ class EMSArea(Base):
     object_id: Mapped[int] = mapped_column(Integer, primary_key=True)
     neighborhood: Mapped[str] = mapped_column(String(100), index=True)
     source_note: Mapped[str] = mapped_column(String(250))
+
+
+class PublicationSnapshot(Base):
+    """Citywide daily published-row counts captured after successful imports.
+
+    Contains no incident identifiers, addresses, coordinates or patient data.
+    Each capture is append-only so changes to earlier dispatch dates are measurable.
+    """
+    __tablename__ = "ems_publication_snapshots"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    dispatch_date: Mapped[date] = mapped_column(Date, index=True)
+    published_rows: Mapped[int] = mapped_column(Integer, nullable=False)
 
 
 class SyncRun(Base):
