@@ -23,8 +23,27 @@ An interactive dashboard for exploring the City of Cleveland's published emergen
 - **Data freshness:** last successful import, snapshot generation time, and newest published dispatch timestamp.
 - **Actionable summaries:** busiest dispatch hour, most common source priority and valid timing-pair coverage for every filtered view.
 - **Aggregate export:** download date-level record counts as CSV, without individual incident identifiers or addresses.
+- **Publication-history audit:** daily append-only citywide count snapshots show whether previously imported dispatch-date totals have changed after later imports. This observation begins only once the feature is deployed; it cannot infer earlier publication delays.
+- **Interpretation guidance:** summaries for older observed weekdays, prominent uncertainty warnings for the newest seven calendar dates, and practical-use guidance that distinguishes exploration from operational recommendations.
+- **Neighborhood explorer:** interactive official boundary selection by neighborhood name, without plotting incident locations or inventing an EMS hotspot map.
+- **Creator attribution:** discreet website credit with a source-code link.
 
 The public dashboard is served from **Cloudflare Pages** for fast, inexpensive access. **Neon PostgreSQL** stores the source records, while **GitHub Actions** updates and exports privacy-preserving aggregate snapshots daily. The original **Render/FastAPI** deployment remains available for uncommon custom date filters and backend API demonstrations. The importer upserts by source `OBJECTID` to avoid duplicate rows on repeated runs.
+
+## Questions this project helps answer
+
+| Research question | Evidence shown | Important boundary |
+|---|---|---|
+| Which dispatch hours or weekdays have higher published activity? | Filtered counts, hourly distributions, and historical weekday averages | Published rows are not verified distinct emergencies; the recent seven-calendar-day period is excluded from weekday comparisons as a **caution heuristic**, not a measured completeness threshold |
+| Is the latest downward trend reliable? | Successive daily aggregate count snapshots reveal changes to already-imported dispatch dates | Changes may reflect source revisions or importer behavior; a baseline snapshot alone does not establish lag or completeness |
+| Can I compare call-to-event timing? | Valid timestamp-pair coverage and exploratory median intervals | These are not official response-time measures or evidence of patient outcomes |
+| Where are the records concentrated geographically? | **Not yet answerable** with verified neighborhoods; official boundary reference can be explored | No derived hotspots or neighborhood demand rankings without a validated record-to-area relationship |
+
+The project aims to help visitors identify **which patterns merit investigation** and which conclusions the public data does not yet justify. It does not recommend EMS staffing, identify patient locations, or claim operational improvements.
+
+### How publication-history monitoring works
+
+After each successful daily import, `python webapp/publication_history.py capture` records citywide *published row counts by dispatch date* for a recent calendar window. Each capture is append-only in the Neon `ems_publication_snapshots` table; the Cloudflare export emits only the daily counts and observation dates in `/api/publication-history.json`. A later snapshot can show how a prior date's count changed. **History starts from the first deployed capture, not retroactively**, and observations cannot on their own prove whether source publication delays or ingestion issues caused changes.
 
 ## Architecture
 
@@ -118,10 +137,11 @@ To use PostgreSQL, set `EMS_DATABASE_URL` in your environment to a secure databa
 webapp/                    FastAPI app, analytics, ArcGIS ingest and tests
   main.py                  Routes and HTML frontend
   analytics.py             Date-filtered public metrics
+  publication_history.py  Daily aggregate publication-count snapshots
   ingest.py                Idempotent source-row upsert
   geography.py             Neighborhood boundaries and safe aggregates
   audit_source.py          Read-only, aggregate data-quality diagnostics
-  templates/ + static/     Dashboard interface and charts
+  templates/ + static/     Interactive dashboard, neighborhood selector and reliability explainer
   tests/                   Automated tests
 .github/workflows/
   ci.yml                   Test on pushes and pull requests
