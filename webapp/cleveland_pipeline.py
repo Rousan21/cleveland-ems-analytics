@@ -293,11 +293,30 @@ def area_summary(*,window="30d",priority="all",now=None,
     }
 
 
+def bootstrap_if_needed(*, initial_days=400):
+    """Additively initialize the Cleveland table only when it is empty.
+
+    The legacy Virginia Beach table stays untouched. Repeated preview deploys
+    should not fetch 400 days of records each time.
+    """
+    init_database()
+    with SessionLocal() as db:
+        stored = db.scalar(select(func.count(ClevelandRecord.object_id))) or 0
+    if stored:
+        print(f"Cleveland table already contains {stored:,} records; bootstrap skipped",flush=True)
+        return {"already_stored":stored}
+    return sync_data(days=initial_days)
+
+
 if __name__ == "__main__":
     parser=argparse.ArgumentParser()
     sub=parser.add_subparsers(dest="cmd",required=True)
     sync=sub.add_parser("sync",help="Import official Cleveland EMS source into separate table")
+    boot=sub.add_parser("bootstrap",help="Import 400 days only if Cleveland table is empty")
+    boot.add_argument("--days",type=int,default=400)
     sync.add_argument("--days",type=int,default=400)
     args=parser.parse_args()
     if args.cmd=="sync":
         print(sync_data(days=args.days),flush=True)
+    if args.cmd=="bootstrap":
+        print(bootstrap_if_needed(initial_days=args.days),flush=True)
