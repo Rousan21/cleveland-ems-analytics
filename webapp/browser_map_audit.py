@@ -60,6 +60,21 @@ def diagnose(url, save_to):
             result=page.evaluate(JS)
             print("MAP LAYOUT",label,json.dumps(result,sort_keys=True),flush=True)
             print("PAGE ERRORS",label,errors[:8],flush=True)
+            # Regression guard: the unpkg stylesheet previously failed, leaving
+            # the Leaflet panes static and the map 7,000–10,000px tall.
+            if not result.get("leafletCssLoaded") or result.get("leafletPanePosition") != "absolute":
+                raise AssertionError(f"{label}: Leaflet CSS was not loaded correctly: {result}")
+            map_size=result.get("mapContainer") or {}
+            expected_height=600 if label=="desktop" else 360
+            if abs(map_size.get("h",0)-expected_height)>5:
+                raise AssertionError(f"{label}: bad map height: {map_size}")
+            if result.get("polygonPaths",0)<25 or (result.get("polygonWidthRatio") or 0)<0.3:
+                raise AssertionError(f"{label}: Cleveland polygons missing or tiny: {result}")
+            if result.get("loadedTiles",0)>0:
+                raise AssertionError(f"{label}: third-party map tiles returned; avoid API-key watermarks")
+            if errors:
+                raise AssertionError(f"{label}: browser runtime errors: {errors[:4]}")
+
             page.screenshot(path=str(Path(save_to)/f"{label}.png"),full_page=False)
             if result.get("hasMap"):
                 dropdown=page.locator("#neighborhood-select")
