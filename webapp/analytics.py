@@ -97,7 +97,7 @@ def summarize(*, window="30d", priority="all", start_date=None, end_date=None, n
         "median_call_to_scene_min": round(median(scene_intervals), 1) if scene_intervals else None,
         # A seven-calendar-day caution window is a transparent display heuristic,
         # NOT a measured reporting lag or proof any given day is incomplete.
-        "publication_caution_start": (now or datetime.now(timezone.utc)).astimezone(LOCAL).date().__sub__(timedelta(days=6)).isoformat(),
+        "publication_caution_start": ((now or datetime.now(timezone.utc)).astimezone(LOCAL).date() - timedelta(days=6)).isoformat(),
         "interval_sample_counts": {
             "call_to_dispatch": len(dispatch_intervals),
             "call_to_scene": len(scene_intervals),
