@@ -32,6 +32,12 @@ def test_build_static_site_preserves_filters_and_privacy(tmp_path, monkeypatch):
 
     monkeypatch.setattr(export_static, "summarize", safe_summary)
     monkeypatch.setattr(export_static, "get_area_summary", fake_areas)
+    monkeypatch.setattr(export_static, "get_ems_stations", lambda: {
+        "status": "ready", "source": "Official EMS stations",
+        "stations": [{"name":"EMS Station Test", "address":"Public station",
+                      "lat":41.51, "lon":-81.71}],
+        "note": "Station facilities, not dispatch locations.",
+    })
     monkeypatch.setattr(export_static, "get_boundaries", lambda: {
         "type": "FeatureCollection", "features": []
     })
@@ -40,6 +46,12 @@ def test_build_static_site_preserves_filters_and_privacy(tmp_path, monkeypatch):
     assert 'data-static-site="true"' in (output / "index.html").read_text()
     assert (output / "static" / "dashboard.js").exists()
     assert (output / "static" / "v3.css").exists()
+    assert (output / "static" / "v5.css").exists()
+    assert (output / "static" / "v5.js").exists()
+    assert (output / "api" / "ems-stations.json").exists()
+    assert 'id="station-count"' in (output / "index.html").read_text()
+    assert 'id="neighborhood-select"' in (output / "index.html").read_text()
+    assert 'Adam Al-Rousan' in (output / "index.html").read_text()
     assert 'id="insight-hour"' in (output / "index.html").read_text()
     assert 'id="download-daily"' in (output / "index.html").read_text()
     assert len([c for c in calls if c[0] == "summary"]) == 24
@@ -51,6 +63,10 @@ def test_build_static_site_preserves_filters_and_privacy(tmp_path, monkeypatch):
     assert data["records"] == 12
     assert data["snapshot_generated_at"]
     assert "block_location" not in data
+    stations = json.loads((output / "api" / "ems-stations.json").read_text())
+    assert stations["stations"][0]["name"] == "EMS Station Test"
+    assert "OBJECTID" not in str(stations)
+    assert "Block_Location" not in str(stations)
     assert "EMS_DATABASE_URL" not in (output / "index.html").read_text()
 
     with pytest.raises(ValueError, match="must be empty"):
