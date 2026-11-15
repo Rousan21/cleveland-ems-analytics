@@ -1,0 +1,56 @@
+name: Deploy EMS dashboard to Cloudflare Pages
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'webapp/**'
+      - '.github/workflows/deploy-cloudflare-pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ems-pages-code-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check required secrets
+        id: config
+        env:
+          EMS_DATABASE_URL: ${{ secrets.EMS_DATABASE_URL }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -z "$EMS_DATABASE_URL" ] || [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::notice::Cloudflare deployment not configured yet; see DEPLOY_CLOUDFLARE_PAGES.md"
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/setup-python@v5
+        if: steps.config.outputs.ready == 'true'
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: webapp/requirements.txt
+      - name: Install Python dependencies
+        if: steps.config.outputs.ready == 'true'
+        run: python -m pip install -r webapp/requirements.txt
+      - name: Build precomputed dashboard
+        if: steps.config.outputs.ready == 'true'
+        env:
+          EMS_DATABASE_URL: ${{ secrets.EMS_DATABASE_URL }}
+        run: python webapp/export_static.py --output site_build
+      - name: Upload to Cloudflare Pages
+        if: steps.config.outputs.ready == 'true'
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy site_build --project-name=cleveland-ems-explorer --branch=main
