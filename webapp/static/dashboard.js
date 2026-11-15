@@ -34,17 +34,17 @@ function draw(id, type, labels, values, color, extra = {}) {
     animation: {duration: 230},
     interaction: {mode: 'index', intersect: false},
     plugins: {legend: {display: type === 'doughnut', position: 'bottom',
-      labels: {boxWidth: 10, usePointStyle: true, color:'#667e8e'}}},
+      labels: {boxWidth: 10, usePointStyle: true, color:'#a6c0ce'}}},
     scales: type === 'doughnut' ? {} : {
-      x: {grid: {display: false}, ticks: {color: '#8092a3', maxTicksLimit: 9}},
-      y: {beginAtZero: true, ticks: {precision: 0, color: '#8092a3'}, grid: {color: '#e8eef2'}}
+      x: {grid: {display: false}, ticks: {color: '#8aa9bd', maxTicksLimit: 9}},
+      y: {beginAtZero: true, ticks: {precision: 0, color: '#8aa9bd'}, grid: {color: '#2c4352'}}
     },
     ...extra
   };
   const dataset = {
     label: 'Published EMS records', data: values, borderColor: color,
-    backgroundColor: type === 'doughnut' ? ['#168b9b','#56bcb9','#9bdcda','#d5eceb'] :
-      type === 'line' ? 'rgba(32,152,162,.12)' : color,
+    backgroundColor: type === 'doughnut' ? ['#3ad9c0','#2f9db7','#6977cd','#41606d'] :
+      type === 'line' ? 'rgba(54,222,192,.14)' : color,
     fill: type === 'line', tension: .28, pointRadius: type === 'line' ? 1.7 : 0,
     pointHoverRadius: 4, borderWidth: type === 'line' ? 2.5 : 0,
     borderRadius: type === 'bar' ? 5 : undefined
@@ -122,14 +122,15 @@ function renderSummary(data) {
   $('coverage').textContent =
     `Newest dispatch in database: ${dateString(data.latest_call)} · ${number(data.total_stored)} records imported`;
 
-  draw('volume-chart', 'line', data.daily.map(v => v.date), data.daily.map(v => v.count), '#1996a2');
+  draw('volume-chart', 'line', data.daily.map(v => v.date), data.daily.map(v => v.count), '#3bd8bd');
   draw('priority-chart', 'doughnut',
     data.priorities.map(v => v.priority === 'Unknown' ? 'Uncoded' : `Priority ${v.priority}`),
-    data.priorities.map(v => v.count), '#168b9b', {cutout:'76%'});
+    data.priorities.map(v => v.count), '#3ad9c0', {cutout:'76%'});
   draw('hour-chart', 'bar',
     data.hours.map(v => `${String(v.hour).padStart(2,'0')}:00`),
-    data.hours.map(v => v.count), '#368db0');
+    data.hours.map(v => v.count), '#48afc2');
   renderInsights(data);
+  document.dispatchEvent(new CustomEvent('ems:summary', {detail: data}));
 }
 
 async function refresh() {
@@ -187,10 +188,10 @@ $('apply-custom').addEventListener('click', refresh);
 function mapFill(name) {
   const rows = state.areaData?.areas || [];
   const count = rows.find(r => r.name.toLowerCase() === name.toLowerCase())?.count;
-  if (count === undefined) return '#e5ebf0'; // never misrepresent unknown as zero
+  if (count === undefined) return '#1d394b'; // not verified (NOT zero calls)
   const max = Math.max(...rows.map(r => r.count), 1);
   const t = Math.max(0, Math.min(1, count / max));
-  return t >= .8 ? '#104a78' : t >= .6 ? '#176998' : t >= .4 ? '#268db0' : t >= .2 ? '#73bad1' : '#bddfe9';
+  return t >= .8 ? '#1cdebf' : t >= .6 ? '#20afa8' : t >= .4 ? '#277e91' : t >= .2 ? '#2c617b' : '#28556a';
 }
 
 function updateMapColors() {
@@ -198,11 +199,14 @@ function updateMapColors() {
   state.mapLayer.eachLayer(layer => {
     const name = layer.feature.properties.name;
     const entry = state.areaData?.areas?.find(r => r.name.toLowerCase() === name.toLowerCase());
-    layer.setStyle({fillColor: mapFill(name), color:'#ffffff',weight:1.4, fillOpacity:1, opacity:1});
+    layer.setStyle({fillColor: mapFill(name), color:'#4d7284',weight:1.3, fillOpacity:.93, opacity:1});
     // Safe: plain text, not user-supplied HTML or individual call addresses.
     layer.unbindTooltip();
-    layer.bindTooltip(`${name} · ${entry ? number(entry.count) + ' recorded calls' : 'Not available'}`, {sticky:true});
+    const tooltip = document.createElement('span');
+    tooltip.textContent = `${name} · ${entry ? number(entry.count) + ' verified published rows' : 'Call volume not verified'}`;
+    layer.bindTooltip(tooltip, {sticky:true});
   });
+  document.dispatchEvent(new Event('ems:map-style'));
 }
 
 async function loadMap() {
@@ -210,24 +214,28 @@ async function loadMap() {
     $('map-status').textContent = 'Map library could not load. Check your internet connection.';
     return;
   }
-  const map = L.map('map', {scrollWheelZoom:false, attributionControl:false, zoomControl:false,
-    dragging:false, doubleClickZoom:false, boxZoom:false, touchZoom:false, keyboard:false});
+  const map = L.map('map', {scrollWheelZoom:false, attributionControl:false, zoomControl:true,
+    dragging:true, doubleClickZoom:true, boxZoom:false, touchZoom:true, keyboard:true});
   state.map = map;
   try {
     const response = await fetch(staticSite ? '/api/neighborhood-boundaries.json' : '/api/neighborhood-boundaries');
     if (!response.ok) throw new Error('Neighborhood boundary service unavailable');
     const geojson = await response.json();
     state.mapLayer = L.geoJSON(geojson, {
-      style: f => ({color:'#fff', weight:1.4, fillOpacity:1, fillColor:mapFill(f.properties.name)}),
+      style: f => ({color:'#4d7284', weight:1.3, fillOpacity:.93, fillColor:mapFill(f.properties.name)}),
       onEachFeature: (feature, layer) => {
-        layer.on('mouseover', () => layer.setStyle({weight:2.5,color:'#195e8c'}));
+        layer.on('mouseover', () => layer.setStyle({weight:2.5,color:'#73dfd5'}));
         layer.on('mouseout', () => updateMapColors());
+        layer.on('click', () => document.dispatchEvent(
+          new CustomEvent('ems:neighborhood-selected', {detail:{name:feature.properties.name}})
+        ));
       }
     }).addTo(map);
     map.fitBounds(state.mapLayer.getBounds(), {padding:[12,12]});
     requestAnimationFrame(() => map.invalidateSize());
     updateMapColors();
-    $('map-status').textContent = 'Official Cleveland neighborhood boundaries';
+    $('map-status').textContent = 'Official Cleveland boundaries · click an area or station';
+    document.dispatchEvent(new Event('ems:map-ready'));
   } catch (err) {
     $('map-status').textContent = 'Neighborhood outlines are temporarily unavailable. Try reloading.';
   }
@@ -236,6 +244,7 @@ async function loadMap() {
 function renderAreas(result) {
   state.areaData = result;
   updateMapColors();
+  document.dispatchEvent(new CustomEvent('ems:areas', {detail: result}));
   const list = $('area-ranking');
   list.replaceChildren();
   if (!result) {
@@ -258,13 +267,13 @@ function renderAreas(result) {
   } else {
     $('map-explainer').textContent = result.status === 'suppressed'
       ? 'Counts for this time period are below the privacy reporting threshold (11).'
-      : 'Area call counts are not yet available: this EMS source needs a validated location-to-neighborhood match. Gray is not a zero-call result.';
+      : 'Verified neighborhood call volume is not yet available. Official boundaries are shown for reference; gray does not mean zero calls.';
     $('map-legend').hidden = true;
     const li = document.createElement('li');
     li.className='area-empty';
     li.textContent = result.status === 'suppressed'
       ? 'Counts below the reporting threshold are hidden.'
-      : 'Neighborhood ranking pending verified geographic data.';
+      : 'Call-volume ranking pending verified geographic assignments.';
     list.append(li);
   }
 }
