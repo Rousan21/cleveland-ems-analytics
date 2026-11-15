@@ -123,7 +123,16 @@ function renderSummary(data) {
   $('coverage').textContent =
     `Imported Cleveland records: ${number(data.total_stored)} · Dates: ${dateString(data.earliest_call)} – ${dateString(data.latest_call)}`;
 
-  draw('volume-chart','line',data.daily.map(v=>v.date),data.daily.map(v=>v.count),'#3bd8bd');
+  // An exact rolling window begins partway through its first local day.
+  // For day-to-day comparisons use Python's vetted complete-day series.
+  // The KPI cards and CSV intentionally still reflect all selected rows.
+  const trend = Array.isArray(data.daily_chart) ? data.daily_chart : data.daily;
+  draw('volume-chart','line',trend.map(v=>v.date),trend.map(v=>v.count),'#3bd8bd');
+  const partial = Array.isArray(data.daily_chart_excluded) ? data.daily_chart_excluded : [];
+  const excludedDates = partial.map(v => v.date).join(' and ');
+  $('daily-chart-note').textContent = (data.daily_chart_note ||
+    'Trend is based on the current selected records.') +
+    (excludedDates ? ` Partial dates omitted from graph: ${excludedDates}.` : '');
   draw('priority-chart','doughnut',
     data.priorities.map(v=>v.priority==='Unknown'?'Uncoded':`Code ${v.priority}`),
     data.priorities.map(v=>v.count),'#3ad9c0',{cutout:'76%'});
