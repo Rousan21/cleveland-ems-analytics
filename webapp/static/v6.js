@@ -70,19 +70,9 @@
   function prepareMap() {
     if (!state.mapLayer || mapReady) return;
     mapReady = true;
-    // Low-contrast basemap adds streets/river context without altering GIS data.
-    // The interactive neighborhood polygons remain above the optional raster tiles.
-    if (window.L) {
-      try {
-        L.tileLayer('https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
-          attribution:'© OpenStreetMap contributors · © CARTO',
-          minZoom:8,maxZoom:17,opacity:.68,
-        }).addTo(state.map).bringToBack();
-        state.map.attributionControl?.addAttribution('Neighborhood boundaries: Cleveland GIS');
-      } catch {
-        // A failed third-party basemap must not block official polygon exploration.
-      }
-    }
+    // No third-party map tiles: this provider began requiring an API key.
+    // Keep the validated Cleveland polygon layer on a self-contained, dark
+    // geographic canvas without watermarking or network dependencies.
     const names = [];
     state.mapLayer.eachLayer(layer => {
       const name = layer.feature?.properties?.name;
