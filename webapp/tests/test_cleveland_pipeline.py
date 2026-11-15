@@ -204,3 +204,26 @@ def test_neighborhood_top_incident_type_is_suppressed_below_11():
         "top_incident_type":None,"top_incident_type_count":None
     }]
     assert "Sick Person" not in str(result["areas"])
+
+
+def test_citywide_incident_type_distribution_has_clear_denominator():
+    """Unambiguous published-row denominator for type ranking percentages."""
+    now=datetime.now(timezone.utc)-timedelta(hours=2)
+    with SessionLocal() as db:
+        db.add_all([
+            ClevelandRecord(object_id=i,incident_time=now,neighborhood="Downtown",
+                           priority="2",incident_type=("SICK PERSON" if i<=16 else "FALLS"),
+                           dispatch_flag="true",transport_flag="true")
+            for i in range(1,22)
+        ])
+        db.commit()
+    result=summarize(window="7d",priority="2")
+    assert result["records"]==21
+    assert result["incident_types"]==[
+        {"type":"SICK PERSON","count":16},{"type":"FALLS","count":5}
+    ]
+    assert result["incident_type_category_count"]==2
+    assert result["incident_type_other_count"]==0
+    assert result["incident_type_uncoded_count"]==0
+    assert result["transported_count"]==21
+    assert result["transport_flag_known"]==21

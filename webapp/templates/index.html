@@ -82,7 +82,7 @@
       <section class="kpi-grid" aria-label="Cleveland EMS summary metrics">
         <article class="kpi"><div class="kpi-label">Published EMS records <span>↗</span></div><div class="kpi-value" id="total-calls">—</div><div class="kpi-meta">Cleveland, Ohio · selected date window</div></article>
         <article class="kpi"><div class="kpi-label">Dispatch flagged <span>◷</span></div><div class="kpi-value" id="dispatch-share">—</div><div class="kpi-meta" id="dispatch-meta">Of records with a known dispatch flag</div></article>
-        <article class="kpi"><div class="kpi-label">Transport flagged <span>◈</span></div><div class="kpi-value" id="transport-share">—</div><div class="kpi-meta" id="transport-meta">Of records with a known transport flag</div></article>
+        <article class="kpi"><div class="kpi-label">Transport marked <span title="Cleveland CAD isTransport=true. Does not confirm hospital admission, a unique patient, or transport time." aria-label="Transport source flag explanation">ⓘ</span></div><div class="kpi-value" id="transport-share">—</div><div class="kpi-meta" id="transport-meta">Of records with a known yes/no transport flag</div></article>
         <article class="kpi kpi-dark"><div class="kpi-label">Neighborhoods reported <span>⬡</span></div><div class="kpi-value" id="areas-reported">—</div><div class="kpi-meta">Distinct source neighborhood labels in selection</div></article>
       </section>
       <section id="geography" class="geo-section" aria-labelledby="geo-title">
@@ -156,7 +156,26 @@
           </article>
         </div>
       </section>
-      <section id="trends" class="two-col"><article class="panel wide"><div class="panel-header"><div><div class="overline">03 / ACTIVITY</div><h2>Published EMS records by day</h2><p>Comparable complete Cleveland-local dates within the selected period.</p></div><div class="panel-actions"><span class="tag">DAILY</span><button type="button" id="download-daily" class="small-action" title="Download the aggregated daily counts as CSV">Export CSV <span aria-hidden="true">↗</span></button></div></div><div class="chart-wrap"><canvas id="volume-chart" aria-label="Daily published Cleveland EMS record counts" role="img"></canvas></div><p class="data-quality-note" id="daily-chart-note" role="note">Comparing complete Cleveland-local dates only. Partial boundary dates remain in the totals and CSV export, not the daily trend. Recent published records can still be revised.</p></article><article class="panel narrow"><div class="panel-header"><div><div class="overline">02 / PRIORITY</div><h2>Priority mix</h2><p>Cleveland CAD records by source priority code (1–7).</p></div></div><div class="chart-wrap donut-wrap"><canvas id="priority-chart" aria-label="Call counts by priority" role="img"></canvas></div></article></section>
+      <section id="call-types" class="panel reasons-panel" aria-labelledby="call-types-title">
+        <div class="panel-header">
+          <div><div class="overline">03 / DISPATCH CLASSIFICATIONS</div>
+            <h2 id="call-types-title">What kinds of situations appear in EMS records?</h2>
+            <p>Top recorded incident categories, ranked by published records. This is a citywide breakdown for your selected dates and priority filter.</p>
+          </div><span class="tag">TOP EIGHT</span>
+        </div>
+        <div class="reasons-content">
+          <ol class="reason-rankings" id="reason-rankings" aria-label="Eight leading source incident classifications"><li class="reason-empty">Loading source incident classifications…</li></ol>
+          <aside class="reasons-context" aria-live="polite">
+            <div class="overline">HOW TO READ THIS</div>
+            <div class="reason-coverage" id="reason-coverage">—</div>
+            <p id="reason-coverage-detail">Calculating how much of the selection is represented by the leading recorded types…</p>
+            <div class="reason-context-divider"></div>
+            <p id="reason-filter-scope">Citywide totals for the selected period and source priority.</p>
+            <p class="reason-context-caveat">These are dispatch classifications, not confirmed diagnoses, unique patients, or clinical severity. A map neighborhood selection does not filter this citywide chart.</p>
+          </aside>
+        </div>
+      </section>
+      <section id="trends" class="two-col trend-only"><article class="panel wide"><div class="panel-header"><div><div class="overline">03 / ACTIVITY</div><h2>Published EMS records by day</h2><p>Comparable complete Cleveland-local dates within the selected period.</p></div><div class="panel-actions"><span class="tag">DAILY</span><button type="button" id="download-daily" class="small-action" title="Download the aggregated daily counts as CSV">Export CSV <span aria-hidden="true">↗</span></button></div></div><div class="chart-wrap"><canvas id="volume-chart" aria-label="Daily published Cleveland EMS record counts" role="img"></canvas></div><p class="data-quality-note" id="daily-chart-note" role="note">Comparing complete Cleveland-local dates only. Partial boundary dates remain in the totals and CSV export, not the daily trend. Recent published records can still be revised.</p></article></section>
       <section class="two-col second-row" id="activity-detail">
         <article class="panel"><div class="panel-header"><div><div class="overline">04 / TIME-OF-DAY</div><h2>When does published EMS activity occur?</h2><p>Counts by Cleveland-local incident hour for the selected period.</p></div></div><div class="chart-wrap"><canvas id="hour-chart" aria-label="Cleveland EMS source records by incident hour" role="img"></canvas></div></article>
         <article class="panel comparison-panel"><div class="panel-header"><div><div class="overline">05 / INTERPRETATION</div><h2>What the data suggests</h2><p>Questions grounded in published records, with clear limitations.</p></div></div>
@@ -170,7 +189,7 @@
       </section>
       <section id="methodology" class="methodology-strip">
         <div><div class="overline">HOW TO INTERPRET THIS DASHBOARD</div><h2>Good decisions start with good definitions.</h2></div>
-        <p>Counts describe published Cleveland CAD records, not independently confirmed unique emergencies. Neighborhood-level totals use source-provided geographic labels matched to official boundary names; unmatched records are excluded. Transport/dispatch indicators are source flags, not measured response times.</p>
+        <p>Counts describe published Cleveland CAD rows, not independently confirmed unique emergencies. Incident-type labels describe the dispatcher's classification, not a confirmed medical diagnosis. Neighborhood labels are matched to official boundaries. <strong>Transport marked</strong> means that <code>isTransport</code> is true in the source CAD row; it does not independently verify unique patients, hospital admission, destination, or transport duration. Dispatch and transport fields are indicators, not response-time measurements.</p>
         <a href="https://github.com/Rousan21/cleveland-ems-analytics" target="_blank" rel="noopener noreferrer">Explore the methodology ↗</a>
       </section>
       <footer class="site-footer">

@@ -97,6 +97,19 @@ def diagnose(url, save_to):
               };
             }""")
             print("DAILY TREND",label,json.dumps(trend,sort_keys=True),flush=True)
+
+            incidents=page.evaluate("""() => ({
+              rows:document.querySelectorAll('#reason-rankings .reason-row').length,
+              first:document.querySelector('#reason-rankings .reason-name')?.textContent||'',
+              coverage:document.querySelector('#reason-coverage')?.textContent||'',
+              scope:document.querySelector('#reason-filter-scope')?.textContent||'',
+              transport:document.querySelector('#transport-share')?.textContent||'',
+              removedWeakChart:!document.querySelector('#priority-chart')
+            })""")
+            print("INCIDENT TYPES",label,json.dumps(incidents,sort_keys=True),flush=True)
+            if incidents["rows"]<5 or not incidents["coverage"].endswith("%") or not incidents["removedWeakChart"] or "City of Cleveland" not in incidents["scope"]:
+                raise AssertionError(f"{label}: incident type chart missing, unscoped or incorrectly laid out: {incidents}")
+
             if trend["source"] != "d5d71757cc73400d843c98bcb46e46b6" or trend["plottedCount"] < 3:
                 raise AssertionError(f"{label}: wrong source or no daily trend: {trend}")
             if (trend["plottedFirst"] in trend["excluded"] or

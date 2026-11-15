@@ -101,6 +101,64 @@ function renderInsights(data) {
     : 'No source incident-type classification in this selection.';
 }
 
+
+function renderRecordedTypes(data) {
+  const list = $('reason-rankings');
+  if (!list) return;
+  const total = Math.max(0, Number(data.records || 0));
+  const ranked = (Array.isArray(data.incident_types) ? data.incident_types : [])
+    .filter(x => x && typeof x.type === 'string' && Number(x.count) > 0)
+    .slice(0,8);
+  list.replaceChildren();
+  if (!total || !ranked.length) {
+    const empty = document.createElement('li');
+    empty.className = 'reason-empty';
+    empty.textContent = 'No recorded incident categories for this selection. Try a wider period or All priorities.';
+    list.append(empty);
+    $('reason-coverage').textContent = 'No records';
+    $('reason-coverage-detail').textContent = 'No dispatch-type distribution is available.';
+  } else {
+    const peak = Math.max(...ranked.map(x => Number(x.count)));
+    for (const [index,item] of ranked.entries()) {
+      const li = document.createElement('li');
+      li.className = 'reason-row';
+      const top = document.createElement('div');
+      top.className = 'reason-row-top';
+      const rank = document.createElement('span');
+      rank.className = 'reason-rank';
+      rank.textContent = String(index+1).padStart(2,'0');
+      const name = document.createElement('span');
+      name.className = 'reason-name';
+      name.textContent = item.type;
+      name.title = item.type;
+      const count = document.createElement('strong');
+      count.className = 'reason-count';
+      count.textContent = `${number(item.count)} · ${percent(item.count,total)}`;
+      top.append(rank,name,count);
+      const track = document.createElement('div');
+      track.className = 'reason-track';
+      track.setAttribute('role','img');
+      track.setAttribute('aria-label',`${item.type}: ${number(item.count)} of ${number(total)} source rows (${percent(item.count,total)})`);
+      const bar = document.createElement('span');
+      bar.className = 'reason-fill';
+      bar.style.width = `${Math.max(0,Math.min(100,100*Number(item.count)/peak)).toFixed(2)}%`;
+      track.append(bar);
+      li.append(top,track);
+      list.append(li);
+    }
+    const shown = ranked.reduce((sum,row) => sum + Number(row.count),0);
+    const totalKinds = Number.isFinite(Number(data.incident_type_category_count))
+      ? Number(data.incident_type_category_count) : ranked.length;
+    const other = Math.max(0,total-shown);
+    $('reason-coverage').textContent = percent(shown,total);
+    $('reason-coverage-detail').textContent =
+      `Top ${ranked.length} of ${totalKinds} recorded categories cover ${number(shown)} of ${number(total)} published rows. ${number(other)} rows fall in other categories.`;
+  }
+  const rangeName = ({'24h':'past day','7d':'past 7 days','30d':'past 30 days','90d':'past 3 months','1y':'past year','all':'all imported dates'})[data.window]||data.window;
+  $('reason-filter-scope').textContent =
+    `City of Cleveland overall · ${rangeName} · ${data.priority==='all'?'all priority codes':'priority code '+data.priority}. Neighborhood selection affects the map only.`;
+}
+
 function renderSummary(data) {
   if (data.source_item_id !== 'd5d71757cc73400d843c98bcb46e46b6') {
     throw new Error('Wrong EMS data source. Refusing to display non-Cleveland statistics.');
@@ -111,7 +169,7 @@ function renderSummary(data) {
   $('dispatch-share').textContent = rate(data.dispatched_count, data.dispatch_flag_known);
   $('dispatch-meta').textContent = `${number(data.dispatched_count)} of ${number(data.dispatch_flag_known)} rows with a known dispatch flag`;
   $('transport-share').textContent = rate(data.transported_count, data.transport_flag_known);
-  $('transport-meta').textContent = `${number(data.transported_count)} of ${number(data.transport_flag_known)} rows with a known transport flag`;
+  $('transport-meta').textContent = `${number(data.transported_count)} of ${number(data.transport_flag_known)} rows marked yes/no; not verified unique patients`;
   $('areas-reported').textContent = number(data.neighborhoods_in_source);
 
   $('sync-indicator').textContent = data.last_successful_sync
@@ -133,9 +191,7 @@ function renderSummary(data) {
   $('daily-chart-note').textContent = (data.daily_chart_note ||
     'Trend is based on the current selected records.') +
     (excludedDates ? ` Partial dates omitted from graph: ${excludedDates}.` : '');
-  draw('priority-chart','doughnut',
-    data.priorities.map(v=>v.priority==='Unknown'?'Uncoded':`Code ${v.priority}`),
-    data.priorities.map(v=>v.count),'#3ad9c0',{cutout:'76%'});
+  renderRecordedTypes(data);
   draw('hour-chart','bar',
     data.hours.map(v=>`${String(v.hour).padStart(2,'0')}:00`),
     data.hours.map(v=>v.count),'#48afc2');

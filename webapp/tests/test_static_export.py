@@ -18,6 +18,8 @@ def test_static_build_contains_only_cleveland_source_and_aggregate_geography(tmp
             "daily":[{"date":"2026-11-10","count":16}],
             "hours":[{"hour":10,"count":16}],"priorities":[{"priority":"2","count":16}],
             "incident_types":[{"type":"Medical","count":16}],
+            "incident_type_category_count":1,"incident_type_other_count":0,
+            "incident_type_uncoded_count":0,
             "dispatched_count":12,"dispatch_flag_known":16,
             "transported_count":8,"transport_flag_known":16,
             "neighborhoods_in_source":1,
@@ -51,6 +53,9 @@ def test_static_build_contains_only_cleveland_source_and_aggregate_geography(tmp
     assert 'id="neighborhood-select"' in html
     assert 'id="geo-mapped-count"' in html
     assert 'id="transport-share"' in html
+    assert 'id="reason-rankings"' in html
+    assert 'id="reason-coverage"' in html
+    assert 'id="priority-chart"' not in html
     assert (output/"static"/"v6.css").exists()
     assert (output/"static"/"v6.js").exists()
     assert (output/"api"/"areas"/"7d"/"7.json").exists()

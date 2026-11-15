@@ -293,6 +293,7 @@ def summarize(*, window="30d", priority="all", start_date=None, end_date=None, n
             ClevelandSyncRun.finished_at.desc()).limit(1))
     def iso(v):
         return as_utc(v).isoformat() if v else None
+    top_types = sorted(type_counts.items(), key=lambda x: (-x[1], x[0]))[:8]
     return {
         "window":window,"priority":priority,
         "records":records,"total_stored":stored,
@@ -306,15 +307,18 @@ def summarize(*, window="30d", priority="all", start_date=None, end_date=None, n
         "hours":[{"hour":h,"count":hour_counts[h]} for h in range(24)],
         "priorities":[{"priority":p,"count":priority_counts[p]} for p in
                       sorted(priority_counts,key=lambda x:(x=="Unknown",x))],
-        "incident_types":[{"type":name,"count":n} for name,n in
-                          sorted(type_counts.items(),key=lambda x:(-x[1],x[0]))[:8]],
+        "incident_types":[{"type":name,"count":n} for name,n in top_types],
+        "incident_type_category_count":len(type_counts),
+        "incident_type_other_count":max(0,records-sum(n for _,n in top_types)),
+        "incident_type_uncoded_count":type_counts.get("Uncoded",0),
         "latest_call":iso(newest),"earliest_call":iso(earliest),
         "last_successful_sync":iso(last_success),
         "last_sync_failed":last_attempt=="failed",
         "source":"City of Cleveland (Ohio) CAD_EMS_Public",
         "source_item_id":SOURCE_ITEM_ID,
         "note":("Counts are Cleveland-published EMS records, not verified unique emergencies. "
-                "Dispatch and transport fields are source flags, not measured response times."),
+                "Dispatch and transport fields are source flags, not measured response times. "
+                "Incident types are classifications understood at dispatch."),
     }
 
 
