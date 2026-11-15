@@ -18,6 +18,19 @@ def audit():
     assert set(FIELD_NAMES) <= names, f"Source missing required fields: {set(FIELD_NAMES)-names}"
     assert layer.get("type") == "Table", "Expected City of Cleveland published EMS table"
     print(f"Official Cleveland EMS source schema validated: {len(names)} fields; date field IncidentDate")
+    for key in ("CurrentPriorityKey", "IncidentTypeDescription"):
+        definition = next((field for field in layer.get("fields", []) if field.get("name") == key), None)
+        if definition:
+            domain = definition.get("domain") or {}
+            print(
+                f"PUBLIC FIELD DEFINITION {key}: "
+                f"alias={definition.get('alias')!r}; "
+                f"field_type={definition.get('type')!r}; "
+                f"description={definition.get('description')!r}; "
+                f"coded_domain={domain.get('codedValues')!r}",
+                flush=True
+            )
+
     q = session.get(SOURCE+"/query",params={
         "where":"1=1", "returnCountOnly":"true", "f":"json"
     },timeout=35)
