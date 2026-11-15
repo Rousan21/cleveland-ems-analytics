@@ -38,6 +38,9 @@ JS = r"""() => {
     areaStatus:document.querySelector('#geo-data-status')?.textContent,
     attributionCount:map?.querySelectorAll('.leaflet-control-attribution').length,
     loadedTiles:map?.querySelectorAll('.leaflet-tile-loaded').length,
+    rankListHeight:document.querySelector('#area-ranking')?.getBoundingClientRect().height,
+    rankButtons:document.querySelectorAll('#area-ranking .geo-rank-button').length,
+    firstRank:document.querySelector('#area-ranking .geo-rank-button')?.innerText,
   };
 }"""
 
@@ -72,6 +75,8 @@ def diagnose(url, save_to):
                 raise AssertionError(f"{label}: Cleveland polygons missing or tiny: {result}")
             if result.get("loadedTiles",0)>0:
                 raise AssertionError(f"{label}: third-party map tiles returned; avoid API-key watermarks")
+            if result.get("rankButtons",0)<5 or result.get("rankListHeight",0)<180:
+                raise AssertionError(f"{label}: neighborhood rankings collapsed or missing: {result}")
             if errors:
                 raise AssertionError(f"{label}: browser runtime errors: {errors[:4]}")
 
