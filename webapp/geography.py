@@ -65,6 +65,74 @@ def get_boundaries(*, client=None, refresh=False):
         raise
 
 
+# Public EMS station *facilities*, not call locations. Official Cleveland GIS
+# layer: EMS_Stations/FeatureServer/0. No incident coordinates are published.
+STATIONS_URL = (
+    "https://services7.arcgis.com/RLKshC6KfXm2kCVy/ArcGIS/rest/services/"
+    "EMS_Stations/FeatureServer/0/query"
+)
+
+
+def get_ems_stations(*, client=None):
+    """Get named public EMS facilities with validated WGS84 coordinates.
+
+    Fail gracefully if ArcGIS is unavailable. Never derive incident locations
+    from station positions or suggest an unsupported coverage radius.
+    """
+    unavailable = {
+        "status": "unavailable", "stations": [],
+        "source": "City of Cleveland public EMS Stations feature layer",
+        "note": "Station positions unavailable; these are not incident locations.",
+    }
+    try:
+        response = (client or requests).get(STATIONS_URL, params={
+            "where": "1=1", "outFields": "EMS_STATION,ADDRESS",
+            "returnGeometry": "true", "outSR": 4326, "f": "geojson",
+            "resultRecordCount": 500,
+        }, timeout=30)
+        response.raise_for_status()
+        payload = response.json()
+        if payload.get("type") != "FeatureCollection":
+            return unavailable
+        stations = []
+        seen = set()
+        for feature in payload.get("features", []):
+            props = feature.get("properties") or {}
+            geom = feature.get("geometry") or {}
+            coord = geom.get("coordinates")
+            if geom.get("type") != "Point" or not isinstance(coord, list) or len(coord) < 2:
+                continue
+            lon, lat = coord[:2]
+            if not all(isinstance(v, (int, float)) and not isinstance(v, bool) for v in [lon, lat]):
+                continue
+            # Exclude coordinates clearly outside the Cleveland metro area.
+            if not (-82.4 <= lon <= -81.0 and 40.8 <= lat <= 42.1):
+                continue
+            name = str(props.get("EMS_STATION") or "").strip()
+            if not name or len(name) > 90:
+                continue
+            address = str(props.get("ADDRESS") or "").strip()[:120]
+            key = (name.casefold(), round(lon, 6), round(lat, 6))
+            if key in seen:
+                continue
+            seen.add(key)
+            stations.append({
+                "name": name, "address": address,
+                "lat": round(lat, 6), "lon": round(lon, 6),
+            })
+        stations.sort(key=lambda item: item["name"].casefold())
+        if not (1 <= len(stations) <= 100):
+            return unavailable
+        return {
+            "status": "ready", "stations": stations,
+            "source": "City of Cleveland public EMS Stations feature layer",
+            "note": ("Public station locations are contextual facilities, not call "
+                     "sites, service areas, availability, or evidence of response coverage."),
+        }
+    except (requests.RequestException, ValueError, KeyError, TypeError):
+        return unavailable
+
+
 def get_area_summary(*, window='30d', priority='all', start_date=None, end_date=None, now=None):
     """Aggregate only *verified* area assignments; suppress small values.
 
