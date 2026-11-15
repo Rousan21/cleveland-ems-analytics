@@ -7,7 +7,7 @@ Do not mix it with the archived Virginia Beach EMS rows.
 """
 import argparse
 from collections import Counter
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone, time
 from zoneinfo import ZoneInfo
 
 import requests
@@ -200,6 +200,57 @@ def _query_rows(*, window, priority, now=None, start_date=None, end_date=None):
             yield row
 
 
+
+def select_comparable_calendar_days(date_counts, *, window, start, end):
+    """Daily trend must not compare a short boundary day with 24-hour days.
+
+    The overall selected-period counts remain unchanged: this affects only the
+    plotted daily series, never the source totals, category counts or CSV export.
+    Dates are evaluated in America/New_York to handle daylight-saving changes.
+    A rolling 24h window cannot contain two complete local calendar days, so
+    that view keeps the raw day splits with an explicit warning.
+    """
+    raw = [{"date":day, "count":date_counts[day]} for day in sorted(date_counts)]
+    if not raw:
+        return [], [], "No records available for a daily trend."
+    if window == "24h":
+        return raw, [], (
+            "Rolling past-day view: local calendar dates are partial, so "
+            "do not compare their daily heights."
+        )
+    end_local = as_utc(end).astimezone(LOCAL)
+    start_local = as_utc(start).astimezone(LOCAL) if start else None
+    excluded = set()
+
+    # When importing historical rows for "all", the first imported day may
+    # start partway through a day; do not imply it is a full 24-hour sample.
+    if not start_local:
+        excluded.add(raw[0]["date"])
+    elif start_local.time() != time.min:
+        excluded.add(start_local.date().isoformat())
+
+    # end is exclusive; if it falls during a local day, that local day is
+    # unfinished even if the source already published some records for it.
+    if end_local.time() != time.min:
+        excluded.add(end_local.date().isoformat())
+
+    displayed = [item for item in raw if item["date"] not in excluded]
+    dropped = [item for item in raw if item["date"] in excluded]
+    if len(displayed) >= 2:
+        return displayed, dropped, (
+            "Trend compares complete Cleveland-local calendar dates only. "
+            "Partial first/current dates are excluded from this graph, but "
+            "their records remain in the summary totals and raw daily CSV. "
+            "Published dates may still be revised later."
+        )
+    # If a sparse priority filter yields too few complete days, do not
+    # manufacture a trend by reconnecting partially observed endpoints.
+    return displayed, dropped, (
+        "Not enough complete local calendar days for a meaningful daily trend. "
+        "Try a longer window or All priorities; selected-period totals remain available."
+    )
+
+
 def summarize(*, window="30d", priority="all", start_date=None, end_date=None, now=None):
     """Compute only Cleveland CAD metrics supported by its actual schema."""
     date_counts = Counter()
@@ -225,6 +276,10 @@ def summarize(*, window="30d", priority="all", start_date=None, end_date=None, n
         if r.transport_flag in ("true", "false"):
             transport_known += 1
             transported += int(r.transport_flag == "true")
+    start_bound, end_bound = get_bounds(window, start_date, end_date, now)
+    chart_days, partial_days, chart_note = select_comparable_calendar_days(
+        date_counts, window=window, start=start_bound, end=end_bound
+    )
     with SessionLocal() as db:
         stored = db.scalar(select(func.count(ClevelandRecord.object_id))) or 0
         newest = db.scalar(select(func.max(ClevelandRecord.incident_time)))
@@ -245,6 +300,9 @@ def summarize(*, window="30d", priority="all", start_date=None, end_date=None, n
         "transported_count":transported,"transport_flag_known":transport_known,
         "neighborhoods_in_source":len(neighborhood_set),
         "daily":[{"date":d,"count":date_counts[d]} for d in sorted(date_counts)],
+        "daily_chart":chart_days,
+        "daily_chart_excluded":partial_days,
+        "daily_chart_note":chart_note,
         "hours":[{"hour":h,"count":hour_counts[h]} for h in range(24)],
         "priorities":[{"priority":p,"count":priority_counts[p]} for p in
                       sorted(priority_counts,key=lambda x:(x=="Unknown",x))],
