@@ -1,79 +1,70 @@
-# Roadmap: verified neighborhood EMS dispatch volumes
+# Cleveland EMS neighborhood geography: implemented v6, validation, and future work
 
-## Goal
+## Provenance correction
 
-Show **which Cleveland neighborhoods have the most published EMS dispatch records**
-within a selected period, without manufacturing addresses, matching nearby
-stations to calls, or presenting misleading counts as incidence or risk.
+The old v2/v3 prototype inadvertently used a Virginia Beach EMS feed. The
+v6 project connects to the actual **City of Cleveland, Ohio** source:
 
-## What is supported today
+- [EMS Calls for Service official ArcGIS item](https://www.arcgis.com/home/item.html?id=d5d71757cc73400d843c98bcb46e46b6)
+- [CAD_EMS_Public table](https://services3.arcgis.com/dty2kHktVXHrqO8i/ArcGIS/rest/services/data/FeatureServer/0)
+- [Cleveland GIS neighborhood boundaries](https://services7.arcgis.com/ZodPOMBKsdAsTqF4/ArcGIS/rest/services/Cleveland_Neighborhoods/FeatureServer/147)
 
-- The public City of Cleveland `EMS_Calls_for_Service` ArcGIS layer is a
-  **table** (not point geometry).
-- Its published fields include `Block_Location`, but the ingested record
-  currently has no independently validated neighborhood key or coordinate.
-- The database already has a reviewed-assignment table, `ems_verified_areas`,
-  and can calculate privacy-suppressed area aggregates from it.
-- As of November 15, 2026, the current Neon table contains **zero** reviewed
-  EMS row-to-neighborhood assignments. Accordingly, no truthful ranking exists.
-- A separate historical national GIS catalog publishes **EMS facility positions** (last edited in 2021), but this is not a verified current City of Cleveland station roster.
-  These are not incident locations or demand measures.
+Unlike the former non-spatial Virginia Beach records, the Cleveland CAD table
+**already includes** a `neighborhood` label and `census_tract` identifier. No
+address geocoding or patient-coordinate approximation is required for the
+initial neighborhood analysis.
 
-## Minimum defensible method
+## Implemented in v6
 
-1. **Identify authoritative geography.** Obtain a City-published, validated
-   record-to-tract or neighborhood column, or an authoritative block-address
-   locator that can reproducibly assign a source location to a census tract or
-   Cleveland neighborhood. Check license and permitted use.
-2. **Do not equate address-like text with a verified location.** Public
-   `Block_Location` values are not inherently reliable geocodes. Review address
-   normalization, block-level ambiguity, city jurisdiction, mismatched streets,
-   and neighborhoods crossing census-tract boundaries. Never assume that a
-   street name or partial address identifies a unique neighborhood.
-3. **Quality-assure the join.** Measure the match success rate and mismatch
-   types, review a randomized sample against authoritative GIS boundaries, and
-   withhold ambiguous points. Keep an audit of the source, transform version,
-   manual review and confidence criteria.
-4. **Only import validated assignments.** Reuse the existing
-   `import_verified_areas.py` workflow to populate only reviewed
-   `OBJECTID → neighborhood` pairs. Never export that lookup or individual
-   call locations to the frontend.
-5. **Report coverage.** Display *eligible source rows*, *rows with reviewed
-   area assignments*, and the percentage matched. A small nonrepresentative
-   subset cannot justify an all-city "highest demand" ranking.
-6. **Protect low counts.** Suppress neighborhood counts below 11; do not expose
-   address lists, points, individual source IDs, or filter combinations that
-   permit reconstructing small counts.
-7. **Compare like with like.** Only compare areas for equivalent time windows
-   and documented coverage. Published rows may represent multiple units for
-   one emergency; label the values as **published dispatch rows**, never
-   unique calls or patient counts.
-8. **Provide context when available.** A raw-count ranking is not a
-   population-normalized EMS rate. Population, daytime population, age
-   structure and geographic area all can affect comparison. Include official
-   denominator sources and uncertainty before claiming relative risk.
+1. New, separate `cleveland_ems_records` table. Archived Virginia Beach rows
+   remain isolated; the v6 site refuses mismatched source provenance.
+2. Source schema and city validation. Only `city=Cleveland` source records are
+   imported, with a valid incident date.
+3. Case-insensitive *exact name* match between the official CAD neighborhood
+   label and the published Cleveland boundary labels. Ambiguous/unmatched
+   labels are **not guessed**.
+4. Group by time window, source priority code and neighborhood.
+5. Suppress neighborhood count cells below **11**. Export no individual
+   records, incident identifiers or patient addresses to Cloudflare.
+6. Publish exact mapped/unmapped counts and match-coverage percentage.
+7. Interactive ranked top-ten area list, choropleth, area selection and
+   context warnings for raw counts.
 
-## Useful v6 map features after validation
+## Required interpretation
 
-- Toggle between *published dispatch rows* and a clearly labeled,
-  **population-normalized** statistic if suitable denominators are obtained.
-- Area ranking with reported assignment coverage and the chosen time/priority
-  filters; reference map shades verified aggregates only.
-- Click a neighborhood to inspect its aggregate count, filtered rank and
-  percentage of all **verified** rows, with source/caveat tooltips.
-- Compare two periods, excluding dates marked provisional, with at-least-11
-  suppression for every published cell.
-- Show **historical EMS facilities** as an independent geographic reference layer,
-  without inferring station service territory or resource availability.
+The choropleth ranks **published EMS records**. It does not rank distinct
+patients, individual emergency incidents, ambulance availability, response
+times, per-capita medical risks, or disease prevalence. Raw area volumes may
+reflect population size, daytime visitors, geography and reporting practices.
 
-## Data sources
+If the source neighborhood label does not match the GIS polygon's name,
+the record is excluded **from the mapped subset** rather than assigned
+speculatively. The dashboard discloses mapping coverage.
 
-- Official EMS Calls for Service dataset:
-  https://www.arcgis.com/home/item.html?id=d5d71757cc73400d843c98bcb46e46b6
-- Official ArcGIS EMS data table:
-  https://services2.arcgis.com/CyVvlIiUfRBmMQuu/arcgis/rest/services/EMS_Calls_for_Service2/FeatureServer/0
-- National historical EMS facility catalog:
-  https://services5.arcgis.com/HDRa0B57OVrv2E1q/ArcGIS/rest/services/Emergency_Medical_Service_Stations/FeatureServer/0
+The source's `CurrentPriorityKey` is a classification code (1–7);
+no clinical priority meaning is assigned without source documentation.
+`isDispatch` and `isTransport` are source flags, not elapsed-time metrics.
 
-Until this validation work is performed, any map coloring neighborhood
-polygons by "EMS activity" would be unsupported by this dataset.
+## Next geographic improvements
+
+- **Check neighborhood-name coverage** in the real dataset, and review
+  unmatched values against authoritative documentation rather than silently
+  normalizing them.
+- **Add comparable denominators:** population or daytime-population estimates
+  with matched boundaries and years, if an official reliable dataset is
+  available. Label population-adjusted statistics separately from raw counts.
+- **Compare equivalent time windows** (same months, weekdays, and population
+  exposure) with source completeness checks.
+- **Show uncertainty and completeness:** count missing neighborhood labels,
+  suppressed cells and source edit dates. A top-ten of 50% mapped rows is not
+  a definitive citywide top-ten.
+- **Geographic type stratification:** compare published incident-type mixes by
+  area only after cell-suppression and anti-reconstruction safeguards.
+
+## Important privacy rule
+
+Do not export incident-level addresses, point coordinates, individual source
+IDs, or combinations of filters that would reveal suppressed small-cell
+counts. Do not infer ambulance station coverage from an unrelated or outdated
+national facility catalog. The v6 map prioritizes the actual Cleveland
+neighborhood data over station reference markers.
