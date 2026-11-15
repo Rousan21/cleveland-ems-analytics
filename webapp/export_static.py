@@ -12,6 +12,7 @@ from pathlib import Path
 
 from analytics import summarize
 from geography import get_area_summary, get_boundaries
+from publication_history import publication_history
 
 HERE = Path(__file__).resolve().parent
 WINDOWS = ("24h", "7d", "30d", "90d", "1y", "all")
@@ -68,6 +69,9 @@ def build_site(output: Path):
 
             areas = get_area_summary(window=window, priority=priority, now=now)
             write_json(output / "api" / "areas" / window / f"{priority}.json", areas)
+
+    # History is strictly citywide daily counts, never incident rows or geography.
+    write_json(output / "api" / "publication-history.json", publication_history(now=now))
 
     # Official neighborhood geometry only; no raw EMS locations or identifiers.
     write_json(output / "api" / "neighborhood-boundaries.json", get_boundaries())
