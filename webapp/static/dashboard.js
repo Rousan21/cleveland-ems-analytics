@@ -8,7 +8,7 @@ const fallbackApi = 'https://cleveland-ems-analytics.onrender.com';
 // Arbitrary custom ranges retain the original FastAPI API (and its cold-start).
 function apiUrl(kind, params) {
   if (!staticSite) return `/api/${kind}?${params}`;
-  if (state.window === 'custom') return `${fallbackApi}/api/${kind}?${params}`;
+  if (state.window === 'custom') throw new Error('Custom ranges are unavailable during the Cleveland source migration.');
   return `/api/${kind}/${state.window}/${state.priority}.json`;
 }
 const number = n => Number(n ?? 0).toLocaleString('en-US');
@@ -68,69 +68,70 @@ function hourLabel(hour) {
 
 // Interpretation is intentionally modest: these are published dispatch records,
 // not distinct emergencies, forecasts or verified official response-time metrics.
+
 function renderInsights(data) {
   const count = Number(data.records || 0);
   const peak = (data.hours || []).filter(v => Number(v.count) > 0)
     .sort((a,b) => b.count - a.count || a.hour - b.hour)[0];
   $('insight-hour').textContent = peak ? hourLabel(Number(peak.hour)) : 'No records';
   $('insight-hour-detail').textContent = peak
-    ? `${number(peak.count)} recorded dispatches (${percent(peak.count, count)}) occurred during this hour of day in the selected period.`
-    : 'No published dispatch timestamps for this selection.';
+    ? `${number(peak.count)} published Cleveland EMS rows (${percent(peak.count,count)}) have an incident date during this hour.`
+    : 'No Cleveland source records for this selection.';
 
   if (data.priority !== 'all') {
     $('insight-priority-title').textContent = 'Priority filter';
     $('insight-priority').textContent = `Priority ${data.priority}`;
     $('insight-priority-detail').textContent =
-      'Only this source priority code is shown. Choose All priorities for a distribution.';
+      'Showing only this Cleveland source priority code. Select All priorities to compare categories.';
   } else {
-    $('insight-priority-title').textContent = 'Most common priority';
+    $('insight-priority-title').textContent = 'Most common source priority';
     const top = (data.priorities || []).filter(v => Number(v.count) > 0)
       .sort((a,b) => b.count - a.count)[0];
-    $('insight-priority').textContent = top ? (top.priority === 'Unknown' ? 'Uncoded' : `Priority ${top.priority}`) : 'No records';
+    $('insight-priority').textContent = top
+      ? (top.priority === 'Unknown' ? 'Uncoded' : `Priority ${top.priority}`) : 'No records';
     $('insight-priority-detail').textContent = top
-      ? `${number(top.count)} published rows (${percent(top.count, count)}) carry this source priority code.`
-      : 'No source priority counts for this selection.';
+      ? `${number(top.count)} rows (${percent(top.count,count)}) use this Cleveland CAD priority code; no clinical severity meaning is inferred.`
+      : 'No priority distribution for this selection.';
   }
 
-  const samples = data.interval_sample_counts?.call_to_scene;
-  if (count === 0) {
-    $('insight-quality').textContent = 'No records';
-    $('insight-quality-detail').textContent = 'No eligible published dispatch records in this selection.';
-  } else if (Number.isInteger(samples) && samples >= 0 && samples <= count) {
-    $('insight-quality').textContent = percent(samples, count);
-    $('insight-quality-detail').textContent =
-      `${number(samples)} of ${number(count)} published dispatch records have valid call-to-scene timestamp pairs. Not an official performance measure.`;
-  } else {
-    $('insight-quality').textContent = 'Not reported';
-    $('insight-quality-detail').textContent =
-      'Timing-pair completeness is unavailable for this selection.';
-  }
+  const type = (data.incident_types || [])[0];
+  $('insight-quality').textContent = type?.type || 'Not available';
+  $('insight-quality-detail').textContent = type
+    ? `${number(type.count)} rows (${percent(type.count,count)}) use this published incident type. This is a source classification, not a diagnosis.`
+    : 'No source incident-type classification in this selection.';
 }
 
 function renderSummary(data) {
+  if (data.source_item_id !== 'd5d71757cc73400d843c98bcb46e46b6') {
+    throw new Error('Wrong EMS data source. Refusing to display non-Cleveland statistics.');
+  }
   state.currentData = data;
   $('total-calls').textContent = number(data.records);
-  $('total-stored').textContent = number(data.total_stored);
-  $('median-dispatch').textContent = minutes(data.median_call_to_dispatch_min);
-  $('median-scene').textContent = minutes(data.median_call_to_scene_min);
-  $('sync-indicator').textContent = data.last_successful_sync
-    ? `Last successful import: ${dateString(data.last_successful_sync)}${data.last_sync_failed ? ' · Latest sync failed' : ''}`
-    : 'No successful import recorded';
-  $('snapshot-note').textContent = data.snapshot_generated_at
-    ? `Snapshot generated ${dateString(data.snapshot_generated_at)} · Preset filters use saved results`
-    : 'Custom ranges query the live database; timings may vary';
-  $('coverage').textContent =
-    `Newest dispatch in database: ${dateString(data.latest_call)} · ${number(data.total_stored)} records imported`;
+  const rate = (part, valid) => valid > 0 ? percent(part, valid) : 'N/A';
+  $('dispatch-share').textContent = rate(data.dispatched_count, data.dispatch_flag_known);
+  $('dispatch-meta').textContent = `${number(data.dispatched_count)} of ${number(data.dispatch_flag_known)} rows with a known dispatch flag`;
+  $('transport-share').textContent = rate(data.transported_count, data.transport_flag_known);
+  $('transport-meta').textContent = `${number(data.transported_count)} of ${number(data.transport_flag_known)} rows with a known transport flag`;
+  $('areas-reported').textContent = number(data.neighborhoods_in_source);
 
-  draw('volume-chart', 'line', data.daily.map(v => v.date), data.daily.map(v => v.count), '#3bd8bd');
-  draw('priority-chart', 'doughnut',
-    data.priorities.map(v => v.priority === 'Unknown' ? 'Uncoded' : `Priority ${v.priority}`),
-    data.priorities.map(v => v.count), '#3ad9c0', {cutout:'76%'});
-  draw('hour-chart', 'bar',
-    data.hours.map(v => `${String(v.hour).padStart(2,'0')}:00`),
-    data.hours.map(v => v.count), '#48afc2');
+  $('sync-indicator').textContent = data.last_successful_sync
+    ? `Cleveland source import: ${dateString(data.last_successful_sync)}${data.last_sync_failed ? ' · Latest sync failed' : ''}`
+    : 'Cleveland source imported; sync timestamp not available';
+  $('snapshot-note').textContent = data.snapshot_generated_at
+    ? `Published aggregate snapshot: ${dateString(data.snapshot_generated_at)}`
+    : 'Using live Cleveland source aggregates';
+  $('coverage').textContent =
+    `Imported Cleveland records: ${number(data.total_stored)} · Dates: ${dateString(data.earliest_call)} – ${dateString(data.latest_call)}`;
+
+  draw('volume-chart','line',data.daily.map(v=>v.date),data.daily.map(v=>v.count),'#3bd8bd');
+  draw('priority-chart','doughnut',
+    data.priorities.map(v=>v.priority==='Unknown'?'Uncoded':`Code ${v.priority}`),
+    data.priorities.map(v=>v.count),'#3ad9c0',{cutout:'76%'});
+  draw('hour-chart','bar',
+    data.hours.map(v=>`${String(v.hour).padStart(2,'0')}:00`),
+    data.hours.map(v=>v.count),'#48afc2');
   renderInsights(data);
-  document.dispatchEvent(new CustomEvent('ems:summary', {detail: data}));
+  document.dispatchEvent(new CustomEvent('ems:summary',{detail:data}));
 }
 
 async function refresh() {
@@ -282,13 +283,13 @@ function renderAreas(result) {
 function downloadDailyCsv() {
   const data = state.currentData;
   if (!data || !Array.isArray(data.daily)) return;
-  const rows = ['date,published_dispatch_records',
+  const rows = ['date,published_cleveland_ems_records',
     ...data.daily.map(row => `${row.date},${Math.trunc(Number(row.count))}`)];
   const blob = new Blob([rows.join('\n') + '\n'], {type:'text/csv;charset=utf-8'});
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = `cleveland-ems-daily-${data.window}-priority-${data.priority}.csv`;
+  link.download = `cleveland-ems-records-${data.window}-priority-${data.priority}.csv`;
   document.body.append(link);
   link.click();
   link.remove();
