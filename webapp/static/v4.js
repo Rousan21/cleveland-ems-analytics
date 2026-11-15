@@ -125,7 +125,7 @@
       .sort((a,b) => b.date.localeCompare(a.date));
     if (!comparable.length) {
       const note = document.createElement('p');
-      note.textContent = 'At least two daily observations of the same dispatch date are needed to measure revisions.';
+      note.textContent = 'At least two daily observations of the same dispatch date are needed to measure count changes.';
       container.append(note);
       return;
     }
