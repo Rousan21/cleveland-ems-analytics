@@ -22,7 +22,7 @@ app = FastAPI(title="Cleveland EMS Analytics", version="2.0.0", lifespan=lifespa
 # uncommon custom-date filters. No credentials/cookies are allowed cross-origin.
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=r"^https://(?:[a-z0-9-]+\\.){1,3}pages\\.dev$",
+    allow_origin_regex=r"^https://(?:[a-z0-9-]+\.){1,3}pages\.dev$",
     allow_methods=["GET"],
     allow_headers=[],
     allow_credentials=False,
