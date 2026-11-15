@@ -6,7 +6,7 @@ type and transport/dispatch flags, but NO measured response-time fields.
 Do not mix it with the archived Virginia Beach EMS rows.
 """
 import argparse
-from collections import Counter
+from collections import Counter, defaultdict
 from datetime import datetime, timedelta, timezone, time
 from zoneinfo import ZoneInfo
 
@@ -323,6 +323,9 @@ def area_summary(*,window="30d",priority="all",now=None,
     """Only source-provided, boundary-matched neighborhoods; suppress counts <11."""
     known = {name.strip().casefold():name for name in (known_neighborhoods or [])}
     area_counts = Counter()
+    # Only publish a neighborhood-level category when its cell count meets
+    # the same reporting threshold as the neighborhood total.
+    area_types = defaultdict(Counter)
     total = 0
     unassigned = 0
     for row in _query_rows(window=window,priority=priority,now=now,
@@ -330,13 +333,25 @@ def area_summary(*,window="30d",priority="all",now=None,
         total += 1
         label = (row.neighborhood or "").strip()
         if label and label.casefold() in known:
-            area_counts[known[label.casefold()]] += 1
+            matched_name = known[label.casefold()]
+            area_counts[matched_name] += 1
+            area_types[matched_name][row.incident_type or "Uncoded"] += 1
         else:
             unassigned += 1
     mapped = sum(area_counts.values())
-    allowed = [{"name":name,"count":c} for name,c in
-               sorted(area_counts.items(),key=lambda v:(-v[1],v[0]))
-               if c >= 11]
+    allowed = []
+    for name, count in sorted(area_counts.items(), key=lambda v: (-v[1], v[0])):
+        if count < 11:
+            continue
+        top_name, top_count = area_types[name].most_common(1)[0]
+        allowed.append({
+            "name": name,
+            "count": count,
+            # A small category count is suppressed independently from the
+            # larger neighborhood total; unknown is not inferred as zero.
+            "top_incident_type": top_name if top_count >= 11 else None,
+            "top_incident_type_count": top_count if top_count >= 11 else None,
+        })
     return {
         "status":"ready" if allowed else ("suppressed" if mapped else "no_verified_geography"),
         "reporting_threshold":11,
@@ -346,8 +361,9 @@ def area_summary(*,window="30d",priority="all",now=None,
         "mapping_coverage_pct":round(100*mapped/total,1) if total else None,
         "areas":allowed,
         "note":("Source-provided Cleveland neighborhood labels matched to Cleveland GIS boundaries. "
-                "Counts below 11 suppressed. Differences in neighborhood naming are excluded "
-                "rather than guessed; values are published rows, not unique incidents."),
+                "Counts below 11 suppressed, including incident-type category cells. "
+                "Differences in neighborhood naming are excluded rather than guessed; "
+                "values are published rows, not unique incidents."),
     }
 
 
