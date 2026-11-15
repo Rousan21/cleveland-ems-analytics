@@ -25,32 +25,32 @@ class FakeStationClient:
 
 def test_official_station_geometries_are_reduced_to_public_facilities():
     client = FakeStationClient({
-        "type": "FeatureCollection",
+        "geometryType": "esriGeometryPoint",
         "features": [
             {
                 "type": "Feature",
-                "properties": {
+                "attributes": {
                     "NAME": "Station A", "ADDRESS": "PUBLIC FACILITY",
                     "CITY":"CLEVELAND","STATE":"OH",
                     "Patient": "secret",
                     "IncidentID": 222222,
                 },
-                "geometry": {"type": "Point", "coordinates": [-81.70, 41.50]},
+                "geometry": {"x": -81.70, "y": 41.50},
             },
             {
                 "type": "Feature",
-                "properties": {"NAME": "Station A", "ADDRESS": "PUBLIC FACILITY", "CITY":"CLEVELAND","STATE":"OH"},
-                "geometry": {"type": "Point", "coordinates": [-81.70, 41.50]},
+                "attributes": {"NAME": "Station A", "ADDRESS": "PUBLIC FACILITY", "CITY":"CLEVELAND","STATE":"OH"},
+                "geometry": {"x": -81.70, "y": 41.50},
             },
             {
                 "type": "Feature",
-                "properties": {"NAME": "Outside metro", "ADDRESS": "EXCLUDE", "CITY":"CLEVELAND","STATE":"OH"},
-                "geometry": {"type": "Point", "coordinates": [-73.0, 40.0]},
+                "attributes": {"NAME": "Outside metro", "ADDRESS": "EXCLUDE", "CITY":"CLEVELAND","STATE":"OH"},
+                "geometry": {"x": -73.0, "y": 40.0},
             },
             {
                 "type": "Feature",
-                "properties": {"NAME": "Invalid feature","CITY":"CLEVELAND","STATE":"OH"},
-                "geometry": {"type": "Polygon", "coordinates": []},
+                "attributes": {"NAME": "Invalid feature","CITY":"CLEVELAND","STATE":"OH"},
+                "geometry": {},
             },
         ]
     })
