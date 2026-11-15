@@ -1,0 +1,40 @@
+/* Cleveland v6: actionable GIS neighborhood counts and accessible ranking. */
+.geo-toolbar-tip {font-size:11px;color:#85d6c7;font-weight:650;letter-spacing:.02em}
+.geo-rank-item {list-style:none;margin:0;padding:0!important;border-bottom:1px solid #2a4657!important}
+.geo-rank-button {width:100%;text-align:left;border:0;background:transparent;padding:11px 0 12px;
+  display:grid;gap:8px;color:#bfd9e5;cursor:pointer;border-radius:7px}
+.geo-rank-button:hover,.geo-rank-button:focus-visible {background:#213c4c;padding-left:7px;padding-right:7px}
+.geo-rank-head {display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:11px}
+.geo-rank-head>span {color:#b5cfdb;font-weight:650}
+.geo-rank-head strong {color:#6ef0d3;font:800 12px Manrope,sans-serif;white-space:nowrap}
+.geo-rank-progress {display:block;height:5px;background:#2b4351;border-radius:8px;overflow:hidden}
+.geo-rank-progress>span {display:block;background:linear-gradient(90deg,#1e8995,#52e3c6);
+  height:100%;border-radius:7px;transition:width .35s ease}
+.geo-detail-pane {min-height:505px}
+.geo-detail-pane .area-ranking {max-height:325px}
+.geo-detail-pane .map-legend {display:flex;align-items:center;gap:9px;margin-top:12px}
+.geo-detail-pane .map-legend[hidden] {display:none}
+#map .leaflet-control-container {display:block}
+#map .leaflet-control-attribution {font-size:8px;background:rgba(9,22,35,.78);
+  color:#8ca6b6;border:1px solid #253b49;border-radius:5px}
+#map .leaflet-control-attribution a {color:#79d7ca}
+#map .leaflet-control-zoom {border:1px solid #376070;box-shadow:0 3px 10px rgba(0,0,0,.24)}
+#map .leaflet-control-zoom a {background:#143244;color:#bcf4e8;border-bottom:1px solid #31576a}
+#map .leaflet-control-zoom a:hover {background:#205467;color:white}
+#map .leaflet-tooltip {font-size:12px}
+.geo-map-pane .map-overlay-label {top:52px}
+.geo-map-pane .map-corner-legend {font-size:9px}
+.geo-detail-pane .geo-note {font-size:11px;line-height:1.7}
+#insight-quality {font-size:clamp(17px,1.65vw,25px);letter-spacing:-.3px;overflow-wrap:anywhere}
+.site-footer {margin-bottom:8px}
+.range-button[hidden] {display:none!important}
+@media(max-width:1020px){
+  .geo-detail-pane {min-height:0}
+  .geo-detail-pane .area-ranking {max-height:420px}
+}
+@media(max-width:600px){
+  .geo-toolbar-tip {order:3;width:100%;font-size:10px}
+  #map .leaflet-control-zoom {margin-top:10px;margin-right:9px}
+  .geo-map-pane .map-overlay-label {top:52px;left:8px;font-size:8px}
+  .geo-map-pane .map-corner-legend {left:8px;bottom:48px;max-width:90%;line-height:1.6;flex-wrap:wrap}
+}
