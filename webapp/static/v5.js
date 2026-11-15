@@ -65,9 +65,9 @@
 
     if (!chosenArea) {
       description.textContent =
-        "Choose a neighborhood boundary to see facilities located inside it. Public station locations do not measure call volume or emergency coverage.";
+        "Choose a neighborhood boundary to see facilities located inside it. Historical EMS facility listings may be outdated and do not measure call volume or emergency coverage.";
       byId("geo-next-copy").textContent = stationRows.length
-        ? "Click a glowing station marker for its public facility name and address. Call locations are never plotted."
+        ? "Click a catalog facility marker for its historical name and address (as of the source's 2021 vintage). Call locations are never plotted."
         : "Neighborhood outlines are geographic references. Facility markers appear if the official station layer is available.";
     } else {
       const areaInfo = total
@@ -75,11 +75,11 @@
         : "EMS call totals for this neighborhood are not validated or are suppressed. Gray does not mean zero. ";
       const stationInfo = stationRows.length
         ? `${fmt(nearbyStations.length)} published EMS station ${nearbyStations.length === 1 ? "location" : "locations"} fall within its mapped boundary.`
-        : "Station facilities currently unavailable.";
+        : "Historical facility reference data unavailable.";
       description.textContent = areaInfo + stationInfo;
       byId("geo-next-copy").textContent = nearbyStations.length
         ? `Facilities inside the mapped boundary: ${nearbyStations.map(s => s.name).slice(0, 8).join("; ")}. Station proximity is not proof of response coverage.`
-        : "No public station point was matched inside this boundary; that does not mean it is unserved.";
+        : "No 2021 cataloged facility point matched this boundary; this says nothing about current EMS service.";
     }
   }
 
@@ -144,13 +144,13 @@
       stationGroup = L.layerGroup(stationRows.map(stationMarker));
       if (byId("show-stations").checked) stationGroup.addTo(state.map);
       byId("station-count").textContent = fmt(stationRows.length);
-      byId("geo-data-status").textContent = "OFFICIAL GIS";
+      byId("geo-data-status").textContent = "CATALOG · 2021";
       updateAreaDetails();
     } catch {
       byId("station-count").textContent = "Unavailable";
       byId("geo-data-status").textContent = "FACILITIES UNAVAILABLE";
       byId("geo-next-copy").textContent =
-        "The public station layer could not be loaded. Neighborhood boundaries and call filters are unaffected.";
+        "The national 2021 facility reference layer could not be loaded. Neighborhood boundaries and call filters are unaffected.";
     }
   }
 
