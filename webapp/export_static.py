@@ -71,7 +71,13 @@ def build_site(output: Path):
 
     # Official neighborhood geometry only; no raw EMS locations or identifiers.
     write_json(output / "api" / "neighborhood-boundaries.json", get_boundaries())
-    write_json(output / "api" / "ems-stations.json", get_ems_stations())
+    stations = get_ems_stations()
+    print(
+        f"Public EMS station layer: {stations['status']} "
+        f"({len(stations['stations'])} validated facility markers)",
+        flush=True,
+    )
+    write_json(output / "api" / "ems-stations.json", stations)
     write_json(output / "api" / "build-info.json", {"generated_at": now.isoformat(), "mode": "precomputed"})
     return output
 
