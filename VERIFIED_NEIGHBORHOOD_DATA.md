@@ -63,7 +63,7 @@ stations to calls, or presenting misleading counts as incidence or risk.
   percentage of all **verified** rows, with source/caveat tooltips.
 - Compare two periods, excluding dates marked provisional, with at-least-11
   suppression for every published cell.
-- Show **historical EMS facilitys** as an independent geographic reference layer,
+- Show **historical EMS facilities** as an independent geographic reference layer,
   without inferring station service territory or resource availability.
 
 ## Data sources
