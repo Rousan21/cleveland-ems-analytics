@@ -77,6 +77,22 @@ def build_site(output: Path):
             write_json(output / "api" / "summary" / window / f"{priority}.json", stats)
             areas = area_summary(window=window, priority=priority, now=now,
                                  known_neighborhoods=boundary_names)
+            if window == "30d" and priority == "all":
+                coverage = areas.get("mapping_coverage_pct")
+                print(
+                    "Cleveland map QA: "
+                    f"status={areas['status']}, "
+                    f"mapped={areas['mapped_records']:,}/"
+                    f"{areas['eligible_records']:,}, coverage={coverage}%, "
+                    f"reportable_neighborhoods={len(areas['areas'])}, "
+                    f"top={[(a['name'], a['count']) for a in areas['areas'][:5]]}",
+                    flush=True,
+                )
+                if areas["status"] != "ready" or not areas["areas"]:
+                    raise RuntimeError(
+                        "No verified Cleveland neighborhoods can be mapped; "
+                        "refusing to deploy an empty geographic explorer."
+                    )
             write_json(output / "api" / "areas" / window / f"{priority}.json", areas)
 
     write_json(output / "api" / "neighborhood-boundaries.json", boundaries)
