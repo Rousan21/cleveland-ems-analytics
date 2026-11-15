@@ -1,6 +1,16 @@
 /* Tiny browser layer: Python handles queries/aggregation, Chart.js handles presentation. */
 const state = { window: '30d', priority: 'all', charts: {}, areaData: null, mapLayer: null, map: null };
 const $ = id => document.getElementById(id);
+const staticSite = document.body.dataset.staticSite === 'true';
+const fallbackApi = 'https://cleveland-ems-analytics.onrender.com';
+
+// Cloudflare serves exact daily precomputed snapshots for preset date windows.
+// Arbitrary custom ranges retain the original FastAPI API (and its cold-start).
+function apiUrl(kind, params) {
+  if (!staticSite) return `/api/${kind}?${params}`;
+  if (state.window === 'custom') return `${fallbackApi}/api/${kind}?${params}`;
+  return `/api/${kind}/${state.window}/${state.priority}.json`;
+}
 const number = n => Number(n ?? 0).toLocaleString('en-US');
 const minutes = n => n == null ? 'N/A' : `${n.toFixed(1)} min`;
 const dateString = iso => iso ? new Date(iso).toLocaleString('en-US', {dateStyle:'medium',timeStyle:'short',timeZone:'America/New_York'}) : 'Not available';
@@ -34,7 +44,7 @@ async function refresh() {
   $('error-message').hidden = true;
   $('sync-indicator').textContent = 'Loading records…';
   try {
-    const response = await fetch(`/api/summary?${params}`);
+    const response = await fetch(apiUrl('summary', params));
     const data = await response.json();
     if (!response.ok) throw new Error(data.detail || `Request failed: ${response.status}`);
     $('total-calls').textContent = number(data.records);
@@ -100,7 +110,7 @@ async function loadMap() {
     dragging:false, doubleClickZoom:false, boxZoom:false, touchZoom:false, keyboard:false});
   state.map = map;
   try {
-    const response = await fetch('/api/neighborhood-boundaries');
+    const response = await fetch(staticSite ? '/api/neighborhood-boundaries.json' : '/api/neighborhood-boundaries');
     if (!response.ok) throw new Error('Neighborhood boundary service unavailable');
     const geojson = await response.json();
     state.mapLayer = L.geoJSON(geojson, {
@@ -121,7 +131,7 @@ async function loadMap() {
 
 async function refreshAreas(params) {
   try {
-    const response = await fetch(`/api/areas?${params}`);
+    const response = await fetch(apiUrl('areas', params));
     if (!response.ok) throw new Error('Neighborhood summaries unavailable');
     const result = await response.json();
     state.areaData = result;

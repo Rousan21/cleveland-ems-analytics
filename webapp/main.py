@@ -2,6 +2,7 @@
 from pathlib import Path
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -17,6 +18,15 @@ async def lifespan(app: FastAPI):
     yield
 
 app = FastAPI(title="Cleveland EMS Analytics", version="2.0.0", lifespan=lifespan)
+# Public aggregate-only GET endpoints may be used by Cloudflare Pages for
+# uncommon custom-date filters. No credentials/cookies are allowed cross-origin.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origin_regex=r"^https://(?:[a-z0-9-]+\.){1,3}pages\.dev$",
+    allow_methods=["GET"],
+    allow_headers=[],
+    allow_credentials=False,
+)
 app.mount("/static", StaticFiles(directory=HERE / "static"), name="static")
 templates = Jinja2Templates(directory=HERE / "templates")
 
