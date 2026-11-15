@@ -25,16 +25,22 @@ def audit():
     total=q.json()
     assert "count" in total, total.get("error")
     print(f"Public source total rows (not unique incidents): {total['count']:,}")
+    recent=session.get(SOURCE+"/query",params={
+        "where":"IncidentDate >= TIMESTAMP '2026-09-01 00:00:00'",
+        "returnCountOnly":"true", "f":"json",
+    },timeout=35)
+    recent.raise_for_status()
+    print("Records since 2026-09-01:",recent.json().get("count","unavailable"))
     sample=session.get(SOURCE+"/query",params={
         "where":"1=1", "outFields":",".join(FIELD_NAMES), "returnGeometry":"false",
-        "orderByFields":"ObjectId DESC", "resultRecordCount":250, "f":"json"
+        "orderByFields":"IncidentDate DESC, ObjectId DESC", "resultRecordCount":250, "f":"json"
     },timeout=45)
     sample.raise_for_status()
     data=sample.json()
     assert not data.get("error"),data.get("error")
     attrs=[r["attributes"] for r in data.get("features",[])]
     if not attrs: raise RuntimeError("No public Cleveland records in sample")
-    print(f"Newest sample: {len(attrs)} source rows; timestamp sample latest UTC: "
+    print(f"Most recent dated sample: {len(attrs)} source rows; timestamp sample latest UTC: "
           f"{max(datetime.fromtimestamp(row['IncidentDate']/1000,tz=timezone.utc) for row in attrs if row.get('IncidentDate')):%Y-%m-%d}")
     for key in ["city", "CurrentPriorityKey", "isDispatch", "isTransport"]:
         print(f"{key}: {Counter(str(row.get(key)) for row in attrs).most_common(12)}")
