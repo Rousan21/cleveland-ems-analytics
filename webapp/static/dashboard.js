@@ -245,7 +245,8 @@ async function loadMap() {
 function renderAreas(result) {
   state.areaData = result;
   updateMapColors();
-  document.dispatchEvent(new CustomEvent('ems:areas', {detail: result}));
+  queueMicrotask(() => document.dispatchEvent(new CustomEvent('ems:areas', {detail: result})));
+
   const list = $('area-ranking');
   list.replaceChildren();
   if (!result) {
