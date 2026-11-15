@@ -72,7 +72,7 @@ def test_timing_completeness_excludes_missing_and_invalid_pairs():
     missing_scene = example_call(2, now)
     missing_scene.scene_time = None
     backwards = example_call(3, now)
-    backwards.call_time = now + timedelta(minutes=5)
+    backwards.call_time = now + timedelta(minutes=30)  # After dispatch and on-scene
     with SessionLocal() as db:
         db.add_all([valid, missing_scene, backwards])
         db.commit()
