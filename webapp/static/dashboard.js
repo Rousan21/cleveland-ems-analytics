@@ -232,10 +232,21 @@ async function loadMap() {
         ));
       }
     }).addTo(map);
-    map.fitBounds(state.mapLayer.getBounds(), {padding:[12,12]});
-    requestAnimationFrame(() => map.invalidateSize());
+    const clevelandBounds = state.mapLayer.getBounds();
+    // Fit only the reviewed Cleveland polygon extents. Use map size after
+    // the responsive CSS has calculated the container dimensions.
+    map.fitBounds(clevelandBounds, {padding:[24,24],maxZoom:12});
+    requestAnimationFrame(() => map.invalidateSize({pan:false}));
+    // CSS breakpoints and dynamically loaded fonts can change the map
+    // viewport size after Leaflet initializes.
+    if (window.ResizeObserver) {
+      const observer = new ResizeObserver(() => {
+        if (state.map === map) map.invalidateSize({pan:false,debounceMoveend:true});
+      });
+      observer.observe($('map'));
+    }
     updateMapColors();
-    $('map-status').textContent = 'Official Cleveland boundaries · click an area or station';
+    $('map-status').textContent = 'Official Cleveland neighborhood boundaries · select a polygon';
     document.dispatchEvent(new Event('ems:map-ready'));
   } catch (err) {
     $('map-status').textContent = 'Neighborhood outlines are temporarily unavailable. Try reloading.';
