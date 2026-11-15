@@ -1,11 +1,13 @@
 # Cleveland EMS Analytics
 
-<img width="2834" height="1494" alt="image" src="https://github.com/user-attachments/assets/0af9715e-28b3-44bd-8b8c-d9b39f9e0054" />
+<img width="2834" height="1494" alt="Cleveland EMS Analytics v2 dashboard screenshot" src="https://github.com/user-attachments/assets/0af9715e-28b3-44bd-8b8c-d9b39f9e0054" />
+
+*Screenshot from the earlier v2 interface. The hosted v3 dashboard uses an updated design.*
 
 
 **A deployed, end-to-end public-data analytics application built with Python, FastAPI, PostgreSQL, and automated ingestion.**
 
-[**Explore the live dashboard ↗**](https://cleveland-ems-analytics.onrender.com/) · [FastAPI API docs](https://cleveland-ems-analytics.onrender.com/docs) · [View source data](https://www.arcgis.com/home/item.html?id=d5d71757cc73400d843c98bcb46e46b6)
+[**Explore the Cloudflare dashboard ↗**](https://cleveland-ems-explorer.pages.dev/) · [Original FastAPI deployment](https://cleveland-ems-analytics.onrender.com/) · [FastAPI API docs](https://cleveland-ems-analytics.onrender.com/docs) · [View source data](https://www.arcgis.com/home/item.html?id=d5d71757cc73400d843c98bcb46e46b6)
 
 > **Independent educational project.** Not affiliated with or endorsed by Cleveland EMS. It analyzes published records, **not verified unique emergency incidents**. Call-to-event time intervals are exploratory and should not be interpreted as official EMS response-time performance measures.
 
@@ -18,40 +20,66 @@ An interactive dashboard for exploring the City of Cleveland's published emergen
 - **Operational trends:** daily dispatch records, priority mix, and dispatch records by Cleveland-local hour.
 - **Timing analysis:** median call-to-dispatch and call-to-on-scene intervals for records with valid timestamps.
 - **Geographic overview:** official Cleveland neighborhood boundaries, shown as a clean vector map.
-- **Data freshness:** the date of the most recent successful import and the newest dispatch timestamp in the database.
+- **Data freshness:** last successful import, snapshot generation time, and newest published dispatch timestamp.
+- **Actionable summaries:** busiest dispatch hour, most common source priority and valid timing-pair coverage for every filtered view.
+- **Aggregate export:** download date-level record counts as CSV, without individual incident identifiers or addresses.
 
-The application runs publicly on **Render** and stores data in **Neon PostgreSQL**. **GitHub Actions** retrieves newly published source rows each day, upserting by source `OBJECTID` so reruns don't create extra copies of existing source rows.
+The public dashboard is served from **Cloudflare Pages** for fast, inexpensive access. **Neon PostgreSQL** stores the source records, while **GitHub Actions** updates and exports privacy-preserving aggregate snapshots daily. The original **Render/FastAPI** deployment remains available for uncommon custom date filters and backend API demonstrations. The importer upserts by source `OBJECTID` to avoid duplicate rows on repeated runs.
 
 ## Architecture
 
 ```text
 City of Cleveland ArcGIS REST API
-              |
-         Python importer
-      (requests + SQLAlchemy)
-              |
-      Neon PostgreSQL database
-              |
-           FastAPI
-   /api/summary | /api/areas
-              |
-  HTML/CSS + Chart.js + Leaflet
-              |
-        Render web service
+           |
+      Python importer
+      (GitHub Actions)
+           |
+       Neon PostgreSQL
+           |
+   Python aggregation/export
+   (24 preset filter combinations)
+           |
+     Static JSON snapshots
+           |
+      Cloudflare Pages
+  HTML / CSS / Chart.js / Leaflet
+           |
+         Browser
 
-GitHub Actions --> daily ingest + automated tests
+Render / FastAPI = custom date ranges + interactive API docs
+CI = pytest + JavaScript syntax checks
 ```
 
-**Technical stack:** Python 3.12 · FastAPI · SQLAlchemy · PostgreSQL (Neon) · Render · GitHub Actions · pytest · Chart.js · Leaflet · HTML/CSS/JavaScript · ArcGIS REST API.
+**Technical stack:** Python 3.12 · FastAPI · SQLAlchemy · PostgreSQL (Neon) · Cloudflare Pages · Render · GitHub Actions · pytest · Chart.js · Leaflet · HTML/CSS/JavaScript · ArcGIS REST API.
+
+**Why precompute?** Preset filters load small, cached JSON results rather than waiting for a free-tier Python service to wake up and repeat the same calculations. The database-backed pipeline still performs exact median calculations and enforces geographic reporting thresholds. Snapshots are generated daily, so a "24h" preset reflects the 24 hours ending at the displayed snapshot timestamp, not a continuously moving per-visitor window.
+
+**Careful interpretation:** The highlights summarize **published dispatch records**. They do not claim to count distinct incidents, establish official EMS performance measures or predict future demand. Timestamp completeness reports the fraction of eligible published dispatch records with valid call-to-scene timestamp pairs.
+
+## Engineering changes in v3
+
+- Served the public dashboard as static assets with daily automated deployments, preserving the backend for advanced queries.
+- Avoided transferring unused ORM/location columns from PostgreSQL for aggregate statistics.
+- Added short-lived browser caching, concurrent aggregate requests, stale-response protection, in-place Chart.js updates and lazy map initialization.
+- Added data-quality insight cards and a public, aggregate-only CSV export.
+- Added tests for timestamp completeness and static build privacy, plus a JavaScript syntax check in CI.
+
+```bash
+cd webapp
+pytest -q
+node --check static/dashboard.js
+```
+
+**Performance claims:** Any published before/after load time should come from reproducible measurement in browser developer tools; the project does not currently claim a measured percentage improvement.
 
 ## Live application
 
-**[Open Cleveland EMS Analytics](https://cleveland-ems-analytics.onrender.com/)**
+**[Open the Cloudflare dashboard](https://cleveland-ems-explorer.pages.dev/)**
 
-The dashboard provides real, date-filterable published-data analysis. Render's free tier can temporarily spin down when idle, so the first request after inactivity may take longer.
+The dashboard provides date-filterable, precomputed published-data analysis for standard filters. Custom ranges still use Render/FastAPI, which may experience a free-tier cold start.
 
 Useful endpoints:
-- [`/health`](https://cleveland-ems-analytics.onrender.com/health) — application readiness
+- [`/health`](https://cleveland-ems-analytics.onrender.com/health) — FastAPI application readiness
 - [`/api/summary`](https://cleveland-ems-analytics.onrender.com/api/summary) — aggregated public statistics
 - [`/api/neighborhood-boundaries`](https://cleveland-ems-analytics.onrender.com/api/neighborhood-boundaries) — neighborhood outlines
 - [`/docs`](https://cleveland-ems-analytics.onrender.com/docs) — automatically generated FastAPI documentation
