@@ -30,7 +30,8 @@ def test_official_station_geometries_are_reduced_to_public_facilities():
             {
                 "type": "Feature",
                 "properties": {
-                    "EMS_STATION": "Station A", "ADDRESS": "PUBLIC FACILITY",
+                    "NAME": "Station A", "ADDRESS": "PUBLIC FACILITY",
+                    "CITY":"CLEVELAND","STATE":"OH",
                     "Patient": "secret",
                     "IncidentID": 222222,
                 },
@@ -38,17 +39,17 @@ def test_official_station_geometries_are_reduced_to_public_facilities():
             },
             {
                 "type": "Feature",
-                "properties": {"EMS_STATION": "Station A", "ADDRESS": "PUBLIC FACILITY"},
+                "properties": {"NAME": "Station A", "ADDRESS": "PUBLIC FACILITY", "CITY":"CLEVELAND","STATE":"OH"},
                 "geometry": {"type": "Point", "coordinates": [-81.70, 41.50]},
             },
             {
                 "type": "Feature",
-                "properties": {"EMS_STATION": "Outside metro", "ADDRESS": "EXCLUDE"},
+                "properties": {"NAME": "Outside metro", "ADDRESS": "EXCLUDE", "CITY":"CLEVELAND","STATE":"OH"},
                 "geometry": {"type": "Point", "coordinates": [-73.0, 40.0]},
             },
             {
                 "type": "Feature",
-                "properties": {"EMS_STATION": "Invalid feature"},
+                "properties": {"NAME": "Invalid feature","CITY":"CLEVELAND","STATE":"OH"},
                 "geometry": {"type": "Polygon", "coordinates": []},
             },
         ]
@@ -62,7 +63,7 @@ def test_official_station_geometries_are_reduced_to_public_facilities():
     assert "secret" not in str(result)
     assert "222222" not in str(result)
     _, params, _ = client.calls[0]
-    assert params["outFields"] == "EMS_STATION,ADDRESS"
+    assert params["outFields"] == "NAME,ADDRESS,CITY,STATE"
     assert params["f"] == "json"
     assert params["outSR"] == 4326
     assert params["returnGeometry"] == "true"
@@ -79,10 +80,10 @@ def test_native_arcgis_point_response_supports_public_facility_markers():
         "geometryType": "esriGeometryPoint",
         "spatialReference": {"wkid": 4326},
         "features": [
-            {"attributes": {"EMS_STATION": "Public EMS Station 2",
+            {"attributes": {"NAME": "Public EMS Station 2", "CITY":"CLEVELAND","STATE":"OH",
                             "ADDRESS": "PUBLIC STATION ADDRESS"},
              "geometry": {"x": -81.67, "y": 41.48}},
-            {"attributes": {"EMS_STATION": "Bad geometry"},
+            {"attributes": {"NAME": "Bad geometry","CITY":"CLEVELAND","STATE":"OH"},
              "geometry": {"x": 2000000, "y": 500000}},
         ]
     })
