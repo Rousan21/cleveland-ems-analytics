@@ -2,7 +2,7 @@
 
 <img width="2834" height="1494" alt="Cleveland EMS Analytics v2 dashboard screenshot" src="https://github.com/user-attachments/assets/0af9715e-28b3-44bd-8b8c-d9b39f9e0054" />
 
-*Screenshot from the earlier v2 interface. The hosted v3 dashboard uses an updated design.*
+*Screenshot from the earlier v2 interface. The proposed v5 map-first redesign is in its own pull request preview; review its visuals before replacing the public site.*
 
 
 **A deployed, end-to-end public-data analytics application built with Python, FastAPI, PostgreSQL, and automated ingestion.**
@@ -19,9 +19,10 @@ An interactive dashboard for exploring the City of Cleveland's published emergen
 - **Priority filters:** explore published priority codes independently or together.
 - **Operational trends:** daily dispatch records, priority mix, and dispatch records by Cleveland-local hour.
 - **Timing analysis:** median call-to-dispatch and call-to-on-scene intervals for records with valid timestamps.
-- **Geographic overview:** official Cleveland neighborhood boundaries, shown as a clean vector map.
+- **Geographic explorer:** interactive official Cleveland neighborhood boundaries and public EMS station facility markers, with clickable/searchable neighborhoods.
+- **Neighborhood call-volume rankings:** available only when individually reviewed record-to-neighborhood geographic assignments exist. **No such reviewed assignments are currently in the database**, so the map does not invent high-volume areas.
 - **Data freshness:** last successful import, snapshot generation time, and newest published dispatch timestamp.
-- **Actionable summaries:** busiest dispatch hour, most common source priority and valid timing-pair coverage for every filtered view.
+- **Evidence-led insights:** busiest recorded dispatch hour, most common priority and timestamp-pair validity, with responsible interpretation rather than staffing or operational claims.
 - **Aggregate export:** download date-level record counts as CSV, without individual incident identifiers or addresses.
 
 The public dashboard is served from **Cloudflare Pages** for fast, inexpensive access. **Neon PostgreSQL** stores the source records, while **GitHub Actions** updates and exports privacy-preserving aggregate snapshots daily. The original **Render/FastAPI** deployment remains available for uncommon custom date filters and backend API demonstrations. The importer upserts by source `OBJECTID` to avoid duplicate rows on repeated runs.
@@ -56,6 +57,16 @@ CI = pytest + JavaScript syntax checks
 
 **Careful interpretation:** The highlights summarize **published dispatch records**. They do not claim to count distinct incidents, establish official EMS performance measures or predict future demand. Timestamp completeness reports the fraction of eligible published dispatch records with valid call-to-scene timestamp pairs.
 
+## Proposed map-first redesign (v5)
+
+This redesign emphasizes a genuinely useful geographic experience and a professional visual identity rather than an extensive reporting-lag investigation.
+
+- **Geographic explorer:** premium dark UI, strong visual hierarchy, map-first presentation, responsive layouts and polished data panels. Design patterns informed by Linear, Vercel and modern geospatial dashboards without reproducing proprietary UI assets.
+- **Public stations:** official City of Cleveland GIS station layer is queried during static builds. Validated WGS84 facility points are deduplicated, aggregated in the browser to their polygon boundaries where appropriate, and displayed as **facilities only**. No patient addresses or incident coordinates are exported.
+- **Source limitation:** the principal EMS table includes public Block_Location strings but no spatial point or verified neighborhood column. Therefore **no actual neighborhood volume rankings** can be asserted yet. The project continues to show gray when neighborhood totals are unvalidated, never zero by assumption.
+- **Roadmap:** [Validated neighborhood call volume](VERIFIED_NEIGHBORHOOD_DATA.md) explains how to implement a reviewed and privacy-protecting join if suitable authoritative geography becomes available.
+- **Simplified narrative:** keeps concise data-quality warnings but elevates geographic discovery, aggregate trends and interpretations.
+
 ## Engineering changes in v3
 
 - Served the public dashboard as static assets with daily automated deployments, preserving the backend for advanced queries.
@@ -68,6 +79,7 @@ CI = pytest + JavaScript syntax checks
 cd webapp
 pytest -q
 node --check static/dashboard.js
+node --check static/v5.js
 ```
 
 **Performance claims:** Any published before/after load time should come from reproducible measurement in browser developer tools; the project does not currently claim a measured percentage improvement.
@@ -90,7 +102,7 @@ Real-world EMS source data has a nontrivial record structure. A 30-day **read-on
 
 Rather than silently deleting records or publishing an unsupported count of “unique emergencies,” the dashboard transparently reports **published dispatch records**. The most recent days may also be incomplete or revised later by the publishing system. These limitations are called out directly on the dashboard.
 
-**Map limitations:** The EMS data does not provide a validated neighborhood identifier or incident point geometry. The vector map displays official neighborhood boundaries, **not** verified incident hotspots. The application deliberately keeps neighborhood-level EMS counts unavailable until validated matches are obtained; gray means unavailable, not zero.
+**Map limitations:** The main EMS source is a non-spatial ArcGIS table without incident point geometry or validated neighborhood IDs. The map displays official neighborhood boundaries **and public EMS station facility locations**, neither of which establishes call-volume hotspots or ambulance service coverage. Neighborhood call counts remain unavailable until reviewed matches exist; gray means unavailable, not zero.
 
 **Privacy:** Public endpoints serve aggregates and neighborhood outlines, never raw incident locations, record identifiers, or unit-level detail. Geographic area aggregates have a minimum reporting threshold.
 
@@ -119,7 +131,8 @@ webapp/                    FastAPI app, analytics, ArcGIS ingest and tests
   main.py                  Routes and HTML frontend
   analytics.py             Date-filtered public metrics
   ingest.py                Idempotent source-row upsert
-  geography.py             Neighborhood boundaries and safe aggregates
+  geography.py             Neighborhood polygons, public EMS stations and verified aggregates
+  static/v5.css + v5.js    Responsive map-first interface and interactions
   audit_source.py          Read-only, aggregate data-quality diagnostics
   templates/ + static/     Dashboard interface and charts
   tests/                   Automated tests
@@ -131,7 +144,7 @@ render.yaml                Render web-service configuration
 app.py / src/ / sql/       Original Streamlit/SQLite prototype
 ```
 
-The original Streamlit prototype is preserved in the repository as an earlier version; **the public demo is the FastAPI app in `webapp/`**.
+The original Streamlit prototype is preserved in the repository as an earlier version; **the public dashboard is built from the API application's templates, Python aggregations and browser assets in `webapp/`**.
 
 ## Design choices and engineering highlights
 
