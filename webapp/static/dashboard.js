@@ -49,6 +49,15 @@ function draw(id, type, labels, values, color, extra = {}) {
     pointHoverRadius: 4, borderWidth: type === 'line' ? 2.5 : 0,
     borderRadius: type === 'bar' ? 5 : undefined
   };
+  // Seven Cleveland-local calendar dates are visually flagged as unverified.
+  // This is a caution heuristic, not a measured reporting-lag estimate.
+  if (id === 'volume-chart') {
+    const cutoff = state.currentData?.publication_caution_start;
+    dataset.segment = {
+      borderDash: ctx => cutoff && labels[ctx.p1DataIndex] >= cutoff ? [6, 5] : [],
+      borderColor: ctx => cutoff && labels[ctx.p1DataIndex] >= cutoff ? '#91a4b3' : color,
+    };
+  }
   if (state.charts[id] && state.charts[id].config.type === type) {
     state.charts[id].data.labels = labels;
     state.charts[id].data.datasets[0] = dataset;
@@ -130,6 +139,7 @@ function renderSummary(data) {
     data.hours.map(v => `${String(v.hour).padStart(2,'0')}:00`),
     data.hours.map(v => v.count), '#368db0');
   renderInsights(data);
+  document.dispatchEvent(new CustomEvent('ems:summary', {detail: data}));
 }
 
 async function refresh() {
@@ -201,8 +211,11 @@ function updateMapColors() {
     layer.setStyle({fillColor: mapFill(name), color:'#ffffff',weight:1.4, fillOpacity:1, opacity:1});
     // Safe: plain text, not user-supplied HTML or individual call addresses.
     layer.unbindTooltip();
-    layer.bindTooltip(`${name} · ${entry ? number(entry.count) + ' recorded calls' : 'Not available'}`, {sticky:true});
+    const tooltip = document.createElement('span');
+    tooltip.textContent = `${name} · ${entry ? number(entry.count) + ' verified published rows' : 'EMS totals not available'}`;
+    layer.bindTooltip(tooltip, {sticky:true});
   });
+  document.dispatchEvent(new Event('ems:map-style'));
 }
 
 async function loadMap() {
@@ -222,12 +235,16 @@ async function loadMap() {
       onEachFeature: (feature, layer) => {
         layer.on('mouseover', () => layer.setStyle({weight:2.5,color:'#195e8c'}));
         layer.on('mouseout', () => updateMapColors());
+        layer.on('click', () => document.dispatchEvent(
+          new CustomEvent('ems:neighborhood-selected', {detail:{name:feature.properties.name}})
+        ));
       }
     }).addTo(map);
     map.fitBounds(state.mapLayer.getBounds(), {padding:[12,12]});
     requestAnimationFrame(() => map.invalidateSize());
     updateMapColors();
-    $('map-status').textContent = 'Official Cleveland neighborhood boundaries';
+    $('map-status').textContent = 'Official Cleveland neighborhood boundaries — select an area or click the map';
+    document.dispatchEvent(new Event('ems:map-ready'));
   } catch (err) {
     $('map-status').textContent = 'Neighborhood outlines are temporarily unavailable. Try reloading.';
   }
@@ -236,6 +253,7 @@ async function loadMap() {
 function renderAreas(result) {
   state.areaData = result;
   updateMapColors();
+  document.dispatchEvent(new CustomEvent('ems:areas', {detail:result}));
   const list = $('area-ranking');
   list.replaceChildren();
   if (!result) {
