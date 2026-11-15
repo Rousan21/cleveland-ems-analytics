@@ -42,3 +42,19 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy site_build --project-name=cleveland-ems-explorer --branch=${{ github.head_ref }}
+
+      - name: Install browser audit support
+        if: github.head_ref == 'dashboard-v6-real-cleveland-data'
+        run: python -m pip install playwright
+      - name: Inspect real preview map at desktop/mobile sizes
+        if: github.head_ref == 'dashboard-v6-real-cleveland-data'
+        run: python webapp/browser_map_audit.py --url "https://dashboard-v6-real-cleveland.cleveland-ems-explorer.pages.dev" --output map_browser_report
+      - name: Save map preview screenshots
+        if: always() && github.head_ref == 'dashboard-v6-real-cleveland-data'
+        uses: actions/upload-artifact@v4
+        with:
+          name: cleveland-map-preview
+          path: map_browser_report/
+          retention-days: 3
+          if-no-files-found: warn
+
