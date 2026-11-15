@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from analytics import summarize
-from geography import get_area_summary, get_boundaries
+from geography import get_area_summary, get_boundaries, get_ems_stations
 
 HERE = Path(__file__).resolve().parent
 WINDOWS = ("24h", "7d", "30d", "90d", "1y", "all")
@@ -71,6 +71,7 @@ def build_site(output: Path):
 
     # Official neighborhood geometry only; no raw EMS locations or identifiers.
     write_json(output / "api" / "neighborhood-boundaries.json", get_boundaries())
+    write_json(output / "api" / "ems-stations.json", get_ems_stations())
     write_json(output / "api" / "build-info.json", {"generated_at": now.isoformat(), "mode": "precomputed"})
     return output
 
