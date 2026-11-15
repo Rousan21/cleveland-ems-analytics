@@ -86,7 +86,7 @@
         <div class="section-heading geo-head">
           <div><div class="overline">01 / GEOGRAPHIC EXPLORER</div>
             <h2 id="geo-title">The geography of Cleveland EMS</h2>
-            <p>Explore official neighborhood boundaries, EMS station locations, and verified area-level dispatch counts when available.</p>
+            <p>Explore official neighborhood boundaries, optional historical EMS facility references, and verified area-level dispatch counts when available.</p>
           </div><span class="section-index">CITY EXPLORER · CLEVELAND, OH</span>
         </div>
         <div class="geo-toolbar">
@@ -95,23 +95,23 @@
           </label>
           <label class="geo-switch" for="show-stations">
             <input type="checkbox" id="show-stations" checked>
-            <span class="switch-track" aria-hidden="true"></span> EMS stations
+            <span class="switch-track" aria-hidden="true"></span> 2021 EMS facility catalog
           </label>
           <button id="neighborhood-reset" type="button" class="geo-reset" disabled>Reset map</button>
         </div>
         <div class="geo-body">
           <div class="geo-map-pane">
-            <div id="map" role="region" aria-label="Official Cleveland neighborhood map and public EMS station markers. No patient or dispatch coordinates."></div>
+            <div id="map" role="region" aria-label="Official Cleveland neighborhood map and optional historical EMS facility markers. No patient or dispatch coordinates."></div>
             <div class="map-overlay-label"><span class="geo-overlay-dot"></span> CLEVELAND · OFFICIAL GIS</div>
-            <div class="map-corner-legend"><span class="station-legend-dot"></span> Public EMS station <span class="legend-separator"></span> <span class="area-legend-swatch"></span> Neighborhood boundary</div>
+            <div class="map-corner-legend"><span class="station-legend-dot"></span> Historical EMS facility <span class="legend-separator"></span> <span class="area-legend-swatch"></span> Neighborhood boundary</div>
             <div id="map-status" class="map-caption" role="status">Loading official neighborhood outlines…</div>
           </div>
           <aside class="geo-detail-pane">
             <div class="geo-statline"><span class="overline">GEOGRAPHIC CONTEXT</span><span class="geo-status-tag" id="geo-data-status">Checking source…</span></div>
             <h3 id="selected-neighborhood-name">Explore an area</h3>
-            <p id="selected-neighborhood-copy">Select a neighborhood on the map or in the dropdown. Public EMS stations appear as markers.</p>
+            <p id="selected-neighborhood-copy">Select a neighborhood on the map or in the dropdown. Historical EMS facilitys appear as markers.</p>
             <div class="geo-mini-stats">
-              <div><span>Official EMS station locations</span><strong id="station-count">—</strong></div>
+              <div><span>Historical EMS facility listings</span><strong id="station-count">—</strong></div>
               <div><span>Verified EMS rows assigned to neighborhoods</span><strong id="geo-mapped-count">—</strong></div>
             </div>
             <div class="geo-detail-divider"></div>
@@ -119,11 +119,12 @@
             <p id="map-explainer" class="geo-note">Actual neighborhood rankings require source-supported geographic assignments. Map outlines alone do not establish volume.</p>
             <ol class="area-ranking" id="area-ranking"><li class="area-empty">No validated area assignments yet.</li></ol>
             <div id="map-legend" class="map-legend" hidden><span>Lower verified count</span><div class="legend-ramp"></div><span>Higher</span></div>
-            <div class="geo-next-step"><span class="geo-next-icon">↗</span><span id="geo-next-copy">Station markers show public facilities, not emergency locations or service coverage.</span></div>
+            <div class="geo-next-step"><span class="geo-next-icon">↗</span><span id="geo-next-copy">Facility markers are historical references—not current EMS bases, emergency locations, or verified response coverage.</span></div>
           </aside>
         </div>
-        <div class="geo-footnote" role="note">Geography is informative only when it is verified. Stations are public facilities; gray neighborhoods mean missing or suppressed call-volume data, not zero activity. Source: City of Cleveland GIS.</div>
-      </section>      <section id="insights" class="insights-section" aria-labelledby="insights-title">
+        <div class="geo-footnote" role="note">Geography is informative only when it is verified. Boundaries come from Cleveland GIS. Optional facility points come from a historical national catalog last edited in 2021 and may be outdated. Gray does not mean zero EMS calls.</div>
+      </section>
+      <section id="insights" class="insights-section" aria-labelledby="insights-title">
         <div class="section-heading"><div>
           <div class="overline">A CLOSER LOOK</div>
           <h2 id="insights-title">Observations, not just numbers</h2>
