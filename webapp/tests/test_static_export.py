@@ -32,6 +32,7 @@ def test_build_static_site_preserves_filters_and_privacy(tmp_path, monkeypatch):
 
     monkeypatch.setattr(export_static, "summarize", safe_summary)
     monkeypatch.setattr(export_static, "get_area_summary", fake_areas)
+    monkeypatch.setattr(export_static, "publication_history", lambda **kwargs: {"status":"collecting","days":[]})
     monkeypatch.setattr(export_static, "get_boundaries", lambda: {
         "type": "FeatureCollection", "features": []
     })
@@ -40,7 +41,13 @@ def test_build_static_site_preserves_filters_and_privacy(tmp_path, monkeypatch):
     assert 'data-static-site="true"' in (output / "index.html").read_text()
     assert (output / "static" / "dashboard.js").exists()
     assert (output / "static" / "v3.css").exists()
+    assert (output / "static" / "v4.css").exists()
+    assert (output / "static" / "v4.js").exists()
+    assert (output / "api" / "publication-history.json").exists()
     assert 'id="insight-hour"' in (output / "index.html").read_text()
+    assert 'id="reliability"' in (output / "index.html").read_text()
+    assert 'id="neighborhood-select"' in (output / "index.html").read_text()
+    assert 'Adam Al-Rousan' in (output / "index.html").read_text()
     assert 'id="download-daily"' in (output / "index.html").read_text()
     assert len([c for c in calls if c[0] == "summary"]) == 24
     assert len([c for c in calls if c[0] == "areas"]) == 24
