@@ -74,7 +74,7 @@ def publication_history(*, now: datetime | None = None, days: int = 14):
         "observations": 0,
         "days": [],
         "note": ("Counts reflect records available at each import, not verified incident volume. "
-                 "A change in published rows is observable backfill/revision; no day is assumed complete."),
+                 "A change in imported rows may reflect source revisions or ingestion changes; no day is assumed complete."),
     }
     if not inspect(engine).has_table(PublicationSnapshot.__tablename__):
         return base
