@@ -56,6 +56,9 @@ jobs:
           else
             python ingest.py --days 30
           fi
+      - name: Capture citywide publication history (no incident data)
+        if: steps.check.outputs.skip != 'true'
+        run: python publication_history.py capture
       - name: Check Cloudflare Pages configuration
         id: pages
         if: steps.check.outputs.skip != 'true'
