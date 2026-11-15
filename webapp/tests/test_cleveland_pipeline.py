@@ -82,7 +82,7 @@ def test_cleveland_import_idempotent_and_does_not_read_legacy_table():
     result=sync_data(days=30,session=source)
     assert result["source_rows_seen"]==4
     assert result["cleveland_rows_upserted"]==3
-    assert len(source.queries)==3
+    assert len(source.queries)==2
     assert "ObjectId" in source.queries[1][1]["outFields"]
     assert "EMS_Call_Number" not in source.queries[1][1]["outFields"]
     sync_data(days=30,session=FakeSource(source.rows))
