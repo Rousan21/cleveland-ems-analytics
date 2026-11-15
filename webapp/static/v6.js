@@ -22,6 +22,25 @@
 
   function showSelectedDetails() {
     $('selected-neighborhood-name').textContent = selected || 'Explore a Cleveland neighborhood';
+    const local = selectedAggregate(selected);
+    const cityType = state.currentData?.incident_types?.[0]?.type;
+    const areaTypeValue = $('area-type-value');
+    const areaTypeMeta = $('area-type-meta');
+    if (!selected) {
+      areaTypeValue.textContent = 'Select a neighborhood';
+      areaTypeMeta.textContent = cityType
+        ? `Citywide top category: ${cityType}. Select an area to compare its own source classification.`
+        : 'Select a neighborhood to view its most common reportable incident category.';
+    } else if (local?.top_incident_type) {
+      areaTypeValue.textContent = local.top_incident_type;
+      areaTypeMeta.textContent =
+        `${fmt(local.top_incident_type_count)} published rows with this incident classification in ${selected} for the selected filters.` +
+        (cityType ? ` Citywide leader: ${cityType}.` : '') +
+        ' Classifications are not medical diagnoses.';
+    } else {
+      areaTypeValue.textContent = 'Not reportable';
+      areaTypeMeta.textContent = 'No incident-type category meets the privacy threshold of 11 published rows for this neighborhood and filter.';
+    }
     const description = $('selected-neighborhood-copy');
     const areas = state.areaData?.areas || [];
     const matched = Number(state.areaData?.mapped_records || 0);
@@ -172,6 +191,7 @@
       `Of ${fmt(records)} Cleveland CAD records in this selection, ${fmt(best.count)} (${share}%) fall in this hour of day. Compare across dates and neighborhoods before interpreting demand patterns.`;
     $('brief-caveat').textContent=
       'Counts use incident timestamps, not measured EMS response times. Source priority codes are not clinical diagnoses.';
+    showSelectedDetails();
   }
 
   document.addEventListener('ems:map-ready',prepareMap);
