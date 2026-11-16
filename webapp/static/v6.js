@@ -146,6 +146,26 @@
 
   function renderGeoStats(result) {
     const rows = result?.areas || [];
+    const top = rows[0];
+    const matched = Number(result?.mapped_records);
+    const eligible = Number(result?.eligible_records);
+    const usable = result && Number.isFinite(eligible) && eligible > 0 &&
+      Number.isFinite(matched) && matched >= 0 && matched <= eligible;
+    const coverage = usable ? (matched / eligible * 100).toFixed(1) + '%' : 'N/A';
+    $('quality-geo').textContent = coverage;
+    $('quality-geo-detail').textContent = usable
+      ? `${fmt(matched)} of ${fmt(eligible)} selected Cleveland records match official neighborhood polygons.`
+      : 'No geographic match coverage is available for this selection.';
+    if (!top || !usable || matched < 11) {
+      $('insight-area').textContent = 'Not enough mapped data';
+      $('insight-area-detail').textContent =
+        'This filter has no reportable neighborhood leader. Widen the time range or choose All priorities.';
+    } else {
+      const share = (100 * Number(top.count) / matched).toFixed(1);
+      $('insight-area').textContent = top.name;
+      $('insight-area-detail').textContent =
+        `${fmt(top.count)} published EMS rows in this neighborhood — ${share}% of ${fmt(matched)} source rows matched to Cleveland GIS for this filter. It is the largest count among mapped, reportable areas; not a population-adjusted risk ranking.`;
+    }
     const coverage = result?.mapping_coverage_pct;
     $('geo-mapped-count').textContent = typeof coverage === 'number' ? `${coverage.toFixed(1)}%` : '—';
     $('top-area-count').textContent = rows.length ? fmt(rows[0].count) : '—';
