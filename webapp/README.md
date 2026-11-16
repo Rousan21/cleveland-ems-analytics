@@ -66,6 +66,9 @@ Only minimal analytic fields are stored in `cleveland_ems_records`; `cleveland_e
 - The map uses `neighborhood` labels that match official boundaries; unmatched records are excluded from mapped totals, and the site reports matching coverage.
 - Area and neighborhood-category counts under **11** are not exposed as individual cells.
 - The daily trend uses complete `America/New_York` calendar days when comparing days; incomplete rolling-window boundary dates remain in KPIs and daily CSV.
+- `record_quality` reports count-based field availability (coded incident types, known flags, labeled neighborhoods) for the exact selected filter. The dashboard converts those counts to percentages of `records` and states the denominator; the percentages **do not certify completeness of the City's published feed**.
+- The GIS match percentage is calculated separately from the area summary, as `mapped_records / eligible_records`; geographic findings are restricted to the matched subset.
+- Export validation refuses a build when `daily`, `hours` or `priorities` sums disagree with `records`, when top category totals or quality counts exceed their denominators, or when geographic mapped and unmapped counts do not reconcile with citywide totals.
 - Source records are **not** independently verified unique emergency incidents. No patient addresses, incident IDs, or individual call coordinates reach the frontend.
 - Transport and dispatch indicators do not independently measure the number of patients, units, hospital admissions, or emergency response time.
 
