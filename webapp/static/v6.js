@@ -151,8 +151,8 @@
     const eligible = Number(result?.eligible_records);
     const usable = result && Number.isFinite(eligible) && eligible > 0 &&
       Number.isFinite(matched) && matched >= 0 && matched <= eligible;
-    const coverage = usable ? (matched / eligible * 100).toFixed(1) + '%' : 'N/A';
-    $('quality-geo').textContent = coverage;
+    const qualityMatchPct = usable ? (matched / eligible * 100).toFixed(1) + '%' : 'N/A';
+    $('quality-geo').textContent = qualityMatchPct;
     $('quality-geo-detail').textContent = usable
       ? `${fmt(matched)} of ${fmt(eligible)} selected Cleveland records match official neighborhood polygons.`
       : 'No geographic match coverage is available for this selection.';
