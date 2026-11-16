@@ -20,6 +20,14 @@ def test_static_build_contains_only_cleveland_source_and_aggregate_geography(tmp
             "incident_types":[{"type":"Medical","count":16}],
             "incident_type_category_count":1,"incident_type_other_count":0,
             "incident_type_uncoded_count":0,
+            "record_quality":{
+                "incident_type_coded_count":16,
+                "incident_type_uncoded_count":0,
+                "priority_coded_count":16,
+                "neighborhood_labeled_count":16,
+                "dispatch_flag_known_count":16,
+                "transport_flag_known_count":16,
+            },
             "dispatched_count":12,"dispatch_flag_known":16,
             "transported_count":8,"transport_flag_known":16,
             "neighborhoods_in_source":1,
@@ -55,6 +63,11 @@ def test_static_build_contains_only_cleveland_source_and_aggregate_geography(tmp
     assert 'id="transport-share"' in html
     assert 'id="reason-rankings"' in html
     assert 'id="reason-coverage"' in html
+    assert 'id="insight-category"' in html
+    assert 'id="insight-area"' in html
+    assert 'id="quality-types"' in html
+    assert 'id="quality-geo"' in html
+    assert 'id="quality-transport"' in html
     assert 'id="priority-chart"' not in html
     assert (output/"static"/"v6.css").exists()
     assert (output/"static"/"v6.js").exists()
@@ -100,3 +113,31 @@ def test_cloudflare_page_origin_can_request_public_aggregate_api():
     with TestClient(app) as client:
         response=client.get("/health",headers={"Origin":"https://untrusted.example"})
         assert "access-control-allow-origin" not in response.headers
+
+
+@pytest.mark.parametrize("changed_field", [
+    "daily", "hours", "priorities", "incident_types", "record_quality",
+])
+def test_export_rejects_inconsistent_counts(changed_field):
+    import export_static
+    data = {
+        "source_item_id":export_static.SOURCE_ITEM_ID,
+        "records":12,
+        "daily":[{"count":12}],
+        "hours":[{"count":12}],
+        "priorities":[{"count":12}],
+        "incident_types":[{"count":12}],
+        "record_quality":{"incident_type_coded_count":12,
+                          "neighborhood_labeled_count":12},
+        "transport_flag_known":12,
+        "dispatch_flag_known":12,
+    }
+    assert export_static.validate_aggregate(data)
+    if changed_field == "record_quality":
+        data["record_quality"]["incident_type_coded_count"] = 13
+    elif changed_field == "incident_types":
+        data["incident_types"][0]["count"] = 13
+    else:
+        data[changed_field][0]["count"] = 13
+    with pytest.raises(RuntimeError,match="totals disagree|quality count"):
+        export_static.validate_aggregate(data)
