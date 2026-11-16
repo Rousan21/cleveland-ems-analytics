@@ -121,6 +121,19 @@ def diagnose(url, save_to):
                 raise AssertionError(f"{label}: first/latest incomplete date still appears: {trend}")
             if "complete Cleveland-local" not in trend["note"]:
                 raise AssertionError(f"{label}: incomplete day explanation missing: {trend}")
+            if label == "desktop":
+                # README screenshots are captured from the verified, deployed
+                # Cloudflare preview—not generated mockups or stale prototypes.
+                page.evaluate("window.scrollTo({top:0,behavior:'instant'})")
+                page.wait_for_timeout(300)
+                page.screenshot(
+                    path=str(Path(save_to)/"desktop-overview.png"),full_page=False
+                )
+                page.locator("#call-types").scroll_into_view_if_needed()
+                page.wait_for_timeout(300)
+                page.screenshot(
+                    path=str(Path(save_to)/"desktop-incident-types.png"),full_page=False
+                )
             page.locator('#trends').scroll_into_view_if_needed()
             page.screenshot(path=str(Path(save_to)/f"{label}-daily-trend.png"),full_page=False)
             page.locator('#geography').scroll_into_view_if_needed()
