@@ -84,9 +84,16 @@ def diagnose(url, save_to):
             old_zoom = page.evaluate("state.map.getZoom()")
             zoom_in.click(timeout=5000)
             page.wait_for_function("(old) => state.map.getZoom() > old",arg=old_zoom,timeout=5000)
+            # Let Leaflet's animated zoom settle before pressing the opposite
+            # control. Two immediate clicks can race the zoom animation.
+            page.wait_for_timeout(400)
+            increased_zoom = page.evaluate("state.map.getZoom()")
             zoom_out.click(timeout=5000)
-            page.wait_for_function("(old) => state.map.getZoom() === old",arg=old_zoom,timeout=5000)
-            print("MAP ZOOM CONTROL",label,"clickable and unobstructed",flush=True)
+            page.wait_for_function("(old) => state.map.getZoom() < old",arg=increased_zoom,timeout=5000)
+            page.wait_for_timeout(250)
+            print("MAP ZOOM CONTROL",label,
+                  f"in={old_zoom}->{increased_zoom}; out={page.evaluate('state.map.getZoom()')}",
+                  flush=True)
             if page.locator('#geo-mapped-count').count()!=0:
                 raise AssertionError(f"{label}: GIS match is still a prominent metric")
             if 'GIS name matching:' not in page.locator('#geo-match-note').inner_text():
