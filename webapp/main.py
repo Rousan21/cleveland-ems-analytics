@@ -8,7 +8,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from cleveland_pipeline import SOURCE_ITEM_ID, area_summary, summarize
+from cleveland_pipeline import SOURCE_ITEM_ID, area_summary, summarize, common_incident_types
 from db import init_database
 from geography import get_boundaries
 
@@ -44,23 +44,23 @@ def health():
 
 @app.get("/api/summary")
 def summary(window: str = "30d", priority: str = "all",
-            start: str | None = None, end: str | None = None):
+            incident_type: str = "all", start: str | None = None, end: str | None = None):
     try:
-        return summarize(window=window, priority=priority, start_date=start, end_date=end)
+        return summarize(window=window, priority=priority, incident_type=incident_type, start_date=start, end_date=end)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
 @app.get("/api/areas")
 def areas(window: str = "30d", priority: str = "all",
-          start: str | None = None, end: str | None = None):
+          incident_type: str = "all", start: str | None = None, end: str | None = None):
     try:
         boundaries = get_boundaries()
         names = [
             feature.get("properties", {}).get("name", "")
             for feature in boundaries.get("features", [])
         ]
-        return area_summary(window=window, priority=priority, start_date=start,
+        return area_summary(window=window, priority=priority, incident_type=incident_type, start_date=start,
                             end_date=end, known_neighborhoods=names)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
@@ -74,6 +74,12 @@ def neighborhood_boundaries():
         return get_boundaries()
     except Exception as exc:
         raise HTTPException(status_code=503, detail="Cleveland GIS boundaries unavailable") from exc
+
+
+@app.get("/api/incident-types")
+def incident_types():
+    return {"types": common_incident_types(),
+            "scope": "Ten most frequent Cleveland CAD incident classifications across imported dates"}
 
 
 @app.get("/api/source")

@@ -32,6 +32,8 @@ SOURCE_ITEM_ID = "d5d71757cc73400d843c98bcb46e46b6"
 LOCAL = ZoneInfo("America/New_York")
 PAGE_SIZE = 1000
 VALID_PRIORITIES = {str(i) for i in range(1, 8)}
+COMMON_TYPE_LIMIT = 10  # Filter frequent source labels, not inferred medical groupings.
+
 
 
 def validate_source(client=None):
@@ -178,10 +180,41 @@ def sync_data(*, days=400, session=None, now=None, validate=True):
         raise
 
 
-def _query_rows(*, window, priority, now=None, start_date=None, end_date=None):
+def common_incident_types():
+    """Ten most frequent *source-recorded* incident types across imported dates.
+
+    Short IDs are safe in static paths; the labels are never reclassified.
+    """
+    with SessionLocal() as db:
+        rows = db.execute(
+            select(ClevelandRecord.incident_type,
+                   func.count(ClevelandRecord.object_id).label("n"))
+            .where(ClevelandRecord.incident_type.is_not(None),
+                   func.trim(ClevelandRecord.incident_type) != "")
+            .group_by(ClevelandRecord.incident_type)
+            .having(func.count(ClevelandRecord.object_id) >= 11)
+            .order_by(func.count(ClevelandRecord.object_id).desc(),
+                      ClevelandRecord.incident_type.asc())
+            .limit(COMMON_TYPE_LIMIT)
+        ).all()
+    return [{"id":f"type_{i:02d}", "label":label}
+            for i,(label,_) in enumerate(rows,1)]
+
+
+def resolve_incident_type(incident_type):
+    if incident_type == "all":
+        return None
+    for entry in common_incident_types():
+        if entry["id"] == incident_type:
+            return entry["label"]
+    raise ValueError("Unknown Cleveland incident classification filter")
+
+
+def _query_rows(*, window, priority, incident_type="all", now=None, start_date=None, end_date=None):
     start, end = get_bounds(window, start_date, end_date, now)
     if priority != "all" and priority not in VALID_PRIORITIES:
         raise ValueError("Unknown Cleveland source priority code")
+    source_type_label = resolve_incident_type(incident_type)
     with SessionLocal() as db:
         query = select(
             ClevelandRecord.incident_time,
@@ -196,6 +229,8 @@ def _query_rows(*, window, priority, now=None, start_date=None, end_date=None):
             query = query.where(ClevelandRecord.incident_time >= start)
         if priority != "all":
             query = query.where(ClevelandRecord.priority == priority)
+        if source_type_label is not None:
+            query = query.where(ClevelandRecord.incident_type == source_type_label)
         for row in db.execute(query).yield_per(1000):
             yield row
 
@@ -247,11 +282,11 @@ def select_comparable_calendar_days(date_counts, *, window, start, end):
     # manufacture a trend by reconnecting partially observed endpoints.
     return displayed, dropped, (
         "Not enough complete local calendar days for a meaningful daily trend. "
-        "Try a longer window or All priorities; selected-period totals remain available."
+        "Try a longer window or All incident types; selected-period totals remain available."
     )
 
 
-def summarize(*, window="30d", priority="all", start_date=None, end_date=None, now=None):
+def summarize(*, window="30d", priority="all", incident_type="all", start_date=None, end_date=None, now=None):
     """Compute only Cleveland CAD metrics supported by its actual schema."""
     date_counts = Counter()
     hour_counts = Counter()
@@ -261,7 +296,7 @@ def summarize(*, window="30d", priority="all", start_date=None, end_date=None, n
     neighborhood_labeled_count = 0
     records = 0
     dispatch_known = transport_known = dispatched = transported = 0
-    for r in _query_rows(window=window,priority=priority,now=now,
+    for r in _query_rows(window=window,priority=priority,incident_type=incident_type,now=now,
                          start_date=start_date,end_date=end_date):
         records += 1
         local = as_utc(r.incident_time).astimezone(LOCAL)
@@ -298,6 +333,8 @@ def summarize(*, window="30d", priority="all", start_date=None, end_date=None, n
     top_types = sorted(type_counts.items(), key=lambda x: (-x[1], x[0]))[:8]
     return {
         "window":window,"priority":priority,
+        "incident_type":incident_type,
+        "selected_incident_type":resolve_incident_type(incident_type),
         "records":records,"total_stored":stored,
         "dispatched_count":dispatched,"dispatch_flag_known":dispatch_known,
         "transported_count":transported,"transport_flag_known":transport_known,
@@ -332,7 +369,7 @@ def summarize(*, window="30d", priority="all", start_date=None, end_date=None, n
     }
 
 
-def area_summary(*,window="30d",priority="all",now=None,
+def area_summary(*,window="30d",priority="all",incident_type="all",now=None,
                  start_date=None,end_date=None,known_neighborhoods=None):
     """Only source-provided, boundary-matched neighborhoods; suppress counts <11."""
     known = {name.strip().casefold():name for name in (known_neighborhoods or [])}
@@ -342,7 +379,7 @@ def area_summary(*,window="30d",priority="all",now=None,
     area_types = defaultdict(Counter)
     total = 0
     unassigned = 0
-    for row in _query_rows(window=window,priority=priority,now=now,
+    for row in _query_rows(window=window,priority=priority,incident_type=incident_type,now=now,
                            start_date=start_date,end_date=end_date):
         total += 1
         label = (row.neighborhood or "").strip()

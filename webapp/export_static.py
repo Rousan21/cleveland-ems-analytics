@@ -10,12 +10,12 @@ import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 
-from cleveland_pipeline import SOURCE_ITEM_ID, area_summary, summarize
+from cleveland_pipeline import SOURCE_ITEM_ID, area_summary, summarize, common_incident_types
 from geography import get_boundaries
 
 HERE = Path(__file__).resolve().parent
 WINDOWS = ("24h", "7d", "30d", "90d", "1y", "all")
-PRIORITIES = ("all", "1", "2", "3", "4", "5", "6", "7")
+# Public site filters by ten common source-recorded types; priority remains internal.
 
 
 def write_json(destination: Path, payload):
@@ -64,7 +64,7 @@ def validate_aggregate(snapshot):
 
 
 def build_site(output: Path):
-    """Generate all preset windows from one time anchor and validated geography."""
+    """Generate date/type aggregate snapshots from one time anchor and validated geography."""
     output = output.resolve()
     if output.exists() and any(output.iterdir()):
         raise ValueError(f"Output directory must be empty: {output}")
@@ -95,7 +95,15 @@ def build_site(output: Path):
     if len(boundary_names) < 20:
         raise RuntimeError("Cleveland boundary layer is missing or incomplete")
 
-    first = summarize(window="30d", priority="all", now=now)
+    choices = common_incident_types()
+    if len(choices) < 3:
+        raise RuntimeError("Cleveland incident-type selector has too few source categories")
+    type_ids = ["all"] + [entry["id"] for entry in choices]
+    write_json(output / "api" / "incident-types.json", {
+        "types": choices,
+        "scope": "Ten most frequent recorded incident types across all imported dates",
+    })
+    first = summarize(window="30d", priority="all", incident_type="all", now=now)
     if not first["records"] or not first["total_stored"]:
         raise RuntimeError(
             "No official Cleveland EMS records in the 30-day window. "
@@ -106,14 +114,14 @@ def build_site(output: Path):
         raise RuntimeError("Cleveland EMS source provenance mismatch")
 
     for window in WINDOWS:
-        for priority in PRIORITIES:
-            stats = first if (window, priority) == ("30d", "all") else summarize(
-                window=window, priority=priority, now=now
+        for type_id in type_ids:
+            stats = first if (window, type_id) == ("30d", "all") else summarize(
+                window=window, priority="all", incident_type=type_id, now=now
             )
             validate_aggregate(stats)
             stats["snapshot_generated_at"] = now.isoformat()
-            write_json(output / "api" / "summary" / window / f"{priority}.json", stats)
-            areas = area_summary(window=window, priority=priority, now=now,
+            write_json(output / "api" / "summary" / window / f"{type_id}.json", stats)
+            areas = area_summary(window=window, priority="all", incident_type=type_id, now=now,
                                  known_neighborhoods=boundary_names)
             # A map layer must describe the exact same selection as its
             # citywide summary; never silently ship a denominator mismatch.
@@ -122,9 +130,9 @@ def build_site(output: Path):
                     areas.get("unmapped_records", 0) != stats["records"]):
                 raise RuntimeError(
                     f"Cleveland geography and citywide totals disagree: "
-                    f"window={window}, priority={priority}"
+                    f"window={window}, incident_type={type_id}"
                 )
-            if window == "30d" and priority == "all":
+            if window == "30d" and type_id == "all":
                 coverage = areas.get("mapping_coverage_pct")
                 print(
                     "Cleveland map QA: "
@@ -140,14 +148,14 @@ def build_site(output: Path):
                         "No verified Cleveland neighborhoods can be mapped; "
                         "refusing to deploy an empty geographic explorer."
                     )
-            write_json(output / "api" / "areas" / window / f"{priority}.json", areas)
+            write_json(output / "api" / "areas" / window / f"{type_id}.json", areas)
 
     write_json(output / "api" / "neighborhood-boundaries.json", boundaries)
     write_json(output / "api" / "build-info.json", {
         "generated_at": now.isoformat(),
         "mode": "Cleveland-only verified public aggregates",
         "source_item_id": SOURCE_ITEM_ID,
-        "priority_codes": list(PRIORITIES),
+        "incident_type_ids": type_ids,
     })
     print(f"Built Cleveland-only site: {first['records']:,} records in 30d, "
           f"{first['total_stored']:,} Cleveland records stored, "
