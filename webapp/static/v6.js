@@ -29,13 +29,13 @@
     if (!selected) {
       areaTypeValue.textContent = 'Select a neighborhood';
       areaTypeMeta.textContent = cityType
-        ? `Citywide top category: ${cityType}. Select an area to compare its own source classification.`
+        ? `Citywide leading category: ${cityType}. Choose an area to inspect its recorded activity.`
         : 'Select a neighborhood to view its most common reportable incident category.';
     } else if (local?.top_incident_type) {
       areaTypeValue.textContent = local.top_incident_type;
       areaTypeMeta.textContent =
         `${fmt(local.top_incident_type_count)} published rows with this incident classification in ${selected} for the selected filters.` +
-        (cityType ? ` Citywide leader: ${cityType}.` : '') +
+        (state.incidentType === 'all' && cityType ? ` Citywide leader: ${cityType}.` : '') +
         ' Classifications are not medical diagnoses.';
     } else {
       areaTypeValue.textContent = 'Not reportable';
@@ -146,26 +146,6 @@
 
   function renderGeoStats(result) {
     const rows = result?.areas || [];
-    const top = rows[0];
-    const matched = Number(result?.mapped_records);
-    const eligible = Number(result?.eligible_records);
-    const usable = result && Number.isFinite(eligible) && eligible > 0 &&
-      Number.isFinite(matched) && matched >= 0 && matched <= eligible;
-    const qualityMatchPct = usable ? (matched / eligible * 100).toFixed(1) + '%' : 'N/A';
-    $('quality-geo').textContent = qualityMatchPct;
-    $('quality-geo-detail').textContent = usable
-      ? `${fmt(matched)} of ${fmt(eligible)} selected Cleveland records match official neighborhood polygons.`
-      : 'No geographic match coverage is available for this selection.';
-    if (!top || !usable || matched < 11) {
-      $('insight-area').textContent = 'Not enough mapped data';
-      $('insight-area-detail').textContent =
-        'This filter has no reportable neighborhood leader. Widen the time range or choose All priorities.';
-    } else {
-      const share = (100 * Number(top.count) / matched).toFixed(1);
-      $('insight-area').textContent = top.name;
-      $('insight-area-detail').textContent =
-        `${fmt(top.count)} published EMS rows in this neighborhood — ${share}% of ${fmt(matched)} source rows matched to Cleveland GIS for this filter. It is the largest count among mapped, reportable areas; not a population-adjusted risk ranking.`;
-    }
     const coverage = result?.mapping_coverage_pct;
     $('geo-mapped-count').textContent = typeof coverage === 'number' ? `${coverage.toFixed(1)}%` : '—';
     $('top-area-count').textContent = rows.length ? fmt(rows[0].count) : '—';
@@ -193,33 +173,12 @@
     highlightSelected();
   }
 
-  function renderInterpretation(summary) {
-    const records=Number(summary.records||0);
-    const best=(summary.hours||[]).filter(x=>Number(x.count)>0)
-      .sort((a,b)=>b.count-a.count)[0];
-    if (!records || !best) {
-      $('brief-title').textContent='No published records for this filter';
-      $('brief-detail').textContent='Try a longer date range or select All priorities to compare more records.';
-      $('brief-caveat').textContent='Only City of Cleveland, Ohio source records appear.';
-      return;
-    }
-    const hour=new Date(Date.UTC(2020,0,1,Number(best.hour)))
-      .toLocaleTimeString('en-US',{hour:'numeric',timeZone:'UTC'});
-    const share=(best.count/records*100).toFixed(1);
-    $('brief-title').textContent=`Busiest recorded incident hour: ${hour}`;
-    $('brief-detail').textContent=
-      `Of ${fmt(records)} Cleveland CAD records in this selection, ${fmt(best.count)} (${share}%) fall in this hour of day. Compare across dates and neighborhoods before interpreting demand patterns.`;
-    $('brief-caveat').textContent=
-      'Counts use incident timestamps, not measured EMS response times. Source priority codes are not clinical diagnoses.';
-    showSelectedDetails();
-  }
-
   document.addEventListener('ems:map-ready',prepareMap);
   document.addEventListener('ems:map-style',highlightSelected);
   document.addEventListener('ems:neighborhood-selected',evt=>selectArea(evt.detail.name,false));
   document.addEventListener('ems:areas',evt=>renderGeoStats(evt.detail));
-  document.addEventListener('ems:summary',evt=>renderInterpretation(evt.detail));
+  document.addEventListener('ems:summary',()=>showSelectedDetails());
   if(state.mapLayer)prepareMap();
   if(state.areaData)renderGeoStats(state.areaData);
-  if(state.currentData)renderInterpretation(state.currentData);
+  if(state.currentData)showSelectedDetails();
 })();

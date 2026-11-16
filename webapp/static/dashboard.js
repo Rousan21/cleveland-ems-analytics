@@ -1,5 +1,5 @@
 /* Tiny browser layer: Python handles queries/aggregation, Chart.js handles presentation. */
-const state = { window: '30d', priority: 'all', charts: {}, areaData: null, mapLayer: null, map: null, requestId: 0, cache: new Map(), currentData: null };
+const state = { window: '30d', incidentType: 'all', charts: {}, areaData: null, mapLayer: null, map: null, requestId: 0, cache: new Map(), currentData: null };
 const $ = id => document.getElementById(id);
 const staticSite = document.body.dataset.staticSite === 'true';
 const fallbackApi = 'https://cleveland-ems-analytics.onrender.com';
@@ -9,7 +9,7 @@ const fallbackApi = 'https://cleveland-ems-analytics.onrender.com';
 function apiUrl(kind, params) {
   if (!staticSite) return `/api/${kind}?${params}`;
   if (state.window === 'custom') throw new Error('Custom ranges are unavailable during the Cleveland source migration.');
-  return `/api/${kind}/${state.window}/${state.priority}.json`;
+  return `/api/${kind}/${state.window}/${state.incidentType}.json`;
 }
 const number = n => Number(n ?? 0).toLocaleString('en-US');
 const minutes = n => n == null ? 'N/A' : `${n.toFixed(1)} min`;
@@ -69,54 +69,6 @@ function hourLabel(hour) {
 // Interpretation is intentionally modest: these are published dispatch records,
 // not distinct emergencies, forecasts or verified official response-time metrics.
 
-function renderInsights(data) {
-  // Source-backed narrative rather than repeating the same three KPIs.
-  const total = Number(data.records || 0);
-  const leading = (data.incident_types || []).find(v => v && Number(v.count) > 0);
-  if (!total || !leading) {
-    $('insight-category').textContent = 'No reportable classification';
-    $('insight-category-detail').textContent =
-      'Try a longer window or All priorities. No category conclusion is supported by this selection.';
-  } else if (leading.type === 'Uncoded' || !leading.type) {
-    $('insight-category').textContent = 'Classification missing';
-    $('insight-category-detail').textContent =
-      `${number(leading.count)} of ${number(total)} selected records have no recorded incident type. The leading recorded classification cannot be reliably described from these labels alone.`;
-  } else {
-    $('insight-category').textContent = leading.type;
-    $('insight-category-detail').textContent =
-      `${number(leading.count)} of ${number(total)} selected published rows (${percent(leading.count,total)}) carry this dispatch-time classification. This describes recorded call types, not diagnoses or patients.`;
-  }
-
-  // Area results arrive separately. Avoid displaying a previous filter's
-  // geographic finding alongside the newly chosen citywide selection.
-  $('insight-area').textContent = 'Updating mapped neighborhoods…';
-  $('insight-area-detail').textContent = 'Checking geographic totals for this selection.';
-  $('quality-geo').textContent = '—';
-  $('quality-geo-detail').textContent = 'Awaiting matching geographic aggregates.';
-  const quality = data.record_quality || {};
-  function reportQuality(value, resultId, detailId, denominatorText) {
-    const count = Number(value);
-    const valid = value !== undefined && value !== null && Number.isFinite(count) &&
-      Number.isInteger(count) && count >= 0 && count <= total && total > 0;
-    $(resultId).textContent = valid ? percent(count,total) : 'N/A';
-    $(detailId).textContent = valid
-      ? `${number(count)} of ${number(total)} selected records ${denominatorText}.`
-      : 'Insufficient or unavailable field-quality information.';
-  }
-  reportQuality(quality.incident_type_coded_count,
-    'quality-types','quality-types-detail','have a recorded incident classification');
-  reportQuality(data.transport_flag_known,
-    'quality-transport','quality-transport-detail','have a known transport indicator');
-  $('quality-snapshot').textContent = data.snapshot_generated_at
-    ? `Snapshot built ${dateString(data.snapshot_generated_at)}`
-    : 'Snapshot time not recorded';
-  $('quality-explanation').textContent =
-    'These are measured field availability and GIS matching for the selected records. ' +
-    'They do not prove that the City has published every incident. Recent dates may be revised; ' +
-    'partial boundary dates remain in totals but are excluded from comparable-day trends.';
-}
-
-
 function renderRecordedTypes(data) {
   const list = $('reason-rankings');
   if (!list) return;
@@ -171,7 +123,7 @@ function renderRecordedTypes(data) {
   }
   const rangeName = ({'24h':'past day','7d':'past 7 days','30d':'past 30 days','90d':'past 3 months','1y':'past year','all':'all imported dates'})[data.window]||data.window;
   $('reason-filter-scope').textContent =
-    `City of Cleveland overall · ${rangeName} · ${data.priority==='all'?'all priority codes':'priority code '+data.priority}. Neighborhood selection affects the map only.`;
+    `Citywide · ${rangeName}. Selecting a neighborhood changes the map only.`;
 }
 
 function renderSummary(data) {
@@ -187,14 +139,16 @@ function renderSummary(data) {
   $('transport-meta').textContent = `${number(data.transported_count)} of ${number(data.transport_flag_known)} rows indicate patient transport; not unique patients`;
   $('areas-reported').textContent = number(data.neighborhoods_in_source);
 
-  $('sync-indicator').textContent = data.last_successful_sync
-    ? `Cleveland source import: ${dateString(data.last_successful_sync)}${data.last_sync_failed ? ' · Latest sync failed' : ''}`
-    : 'Cleveland source imported; sync timestamp not available';
+  $('sync-indicator').textContent = data.last_sync_failed
+    ? 'Update delayed — latest import failed'
+    : (data.snapshot_generated_at
+        ? `Updated ${dateString(data.snapshot_generated_at)}`
+        : 'City of Cleveland EMS data');
   $('snapshot-note').textContent = data.snapshot_generated_at
     ? `Published aggregate snapshot: ${dateString(data.snapshot_generated_at)}`
     : 'Using live Cleveland source aggregates';
   $('coverage').textContent =
-    `Imported Cleveland records: ${number(data.total_stored)} · Dates: ${dateString(data.earliest_call)} – ${dateString(data.latest_call)}`;
+    `Public source records available through ${dateString(data.latest_call)}`;
 
   // An exact rolling window begins partway through its first local day.
   // For day-to-day comparisons use Python's vetted complete-day series.
@@ -206,16 +160,16 @@ function renderSummary(data) {
   $('daily-chart-note').textContent = (data.daily_chart_note ||
     'Trend is based on the current selected records.') +
     (excludedDates ? ` Partial dates omitted from graph: ${excludedDates}.` : '');
+  $('call-types').hidden = data.incident_type !== 'all';
   renderRecordedTypes(data);
   draw('hour-chart','bar',
     data.hours.map(v=>`${String(v.hour).padStart(2,'0')}:00`),
     data.hours.map(v=>v.count),'#48afc2');
-  renderInsights(data);
   document.dispatchEvent(new CustomEvent('ems:summary',{detail:data}));
 }
 
 async function refresh() {
-  const params = new URLSearchParams({window: state.window, priority: state.priority});
+  const params = new URLSearchParams({window: state.window, incident_type: state.incidentType});
   if (state.window === 'custom') {
     if (!$('start-date').value || !$('end-date').value) {
       $('snapshot-note').textContent = 'Choose both dates, then apply your range';
@@ -261,8 +215,31 @@ for (const button of document.querySelectorAll('.range-button')) {
     if (state.window !== 'custom') refresh();
   });
 }
-$('priority').addEventListener('change', event => { state.priority = event.target.value; refresh(); });
+$('incident-type').addEventListener('change', event => {
+  state.incidentType = event.target.value;
+  refresh();
+});
 $('apply-custom').addEventListener('click', refresh);
+
+async function initializeIncidentTypes() {
+  const select = $('incident-type');
+  try {
+    const url = staticSite ? '/api/incident-types.json' : '/api/incident-types';
+    const payload = await fetchAggregate(url);
+    if (!Array.isArray(payload.types) || !payload.types.length) {
+      throw new Error('No recorded classifications available');
+    }
+    select.replaceChildren(new Option('All incident types','all'));
+    for (const entry of payload.types) {
+      if (!/^type_\\d{2}$/.test(entry.id) || typeof entry.label !== 'string') continue;
+      select.add(new Option(entry.label,entry.id));
+    }
+  } catch (error) {
+    select.replaceChildren(new Option('All incident types','all'));
+    console.warn('Incident-type selector unavailable; showing all records.',error.message);
+  }
+  refresh();
+}
 
 // No raster tiles. The official neighborhood polygons draw as a simple vector map.
 // Only reviewed neighborhood assignments can produce colored call counts.
@@ -381,7 +358,7 @@ function downloadDailyCsv() {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = `cleveland-ems-records-${data.window}-priority-${data.priority}.csv`;
+  link.download = `cleveland-ems-records-${data.window}-incident-${data.incident_type}.csv`;
   document.body.append(link);
   link.click();
   link.remove();
@@ -401,7 +378,7 @@ if ('IntersectionObserver' in window) {
 } else {
   loadMap();
 }
-refresh();
+initializeIncidentTypes();
 // Static snapshots change on deployment, not every two minutes: don't poll
 // Cloudflare unnecessarily. The live FastAPI version retains its refresh.
 if (!staticSite) setInterval(() => {

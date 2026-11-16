@@ -180,3 +180,18 @@
   .quality-metrics>div+div{border-left:0;border-top:1px solid #2b4756;padding:13px 0}
   .quality-metrics strong{font-size:23px}
 }
+
+
+/* Recruiter-friendly view: show what, where, when; keep validation in CI.
+   The removed evidence panel and guidance cards are intentionally not public. */
+#snapshot-note[hidden],#call-types[hidden] {display:none!important}
+.sync-box{font-size:11px;text-align:right}
+#activity-detail{display:block}
+#activity-detail>.panel{width:100%}
+.reasons-content{display:block}
+.reason-rankings{max-width:970px}
+.reason-inline-note,.reason-scope{font-size:11px;line-height:1.65;color:#90aebc;margin:12px 0 0}
+.reason-inline-note strong{color:#66dbca;font-weight:800}
+.reason-scope{font-size:10px;margin-top:5px}
+.priority-select select#incident-type{max-width:360px;width:min(360px,56vw);min-width:195px}
+.priority-select{align-items:center}
