@@ -27,6 +27,8 @@ I built Cleveland EMS Analytics as a practical, end-to-end data project: from pu
 | **When are calls recorded?** | A complete-local-day trend and hour-of-day distribution |
 | **Are patients transported or units dispatched?** | Source-based transport and dispatch indicator percentages calculated only among known values |
 | **How do filters affect the data?** | Six preset date windows, Cleveland priority codes 1–7, and aggregate-only daily CSV export |
+| **What should a visitor make of the numbers?** | A source-backed observation about the leading recorded situation and largest mapped neighborhood count, updated with filters |
+| **How reliable is this particular view?** | Field availability for incident types and transport indicators, GIS label-matching coverage, snapshot date, and clear interpretation limits |
 
 ![Top dispatch classifications and their shares of Cleveland EMS records](assets/incident-types.png)
 
@@ -86,6 +88,10 @@ Static builds precompute **48 date/priority selections** to avoid repeated datab
 
 **Choosing useful metrics.** Unsupported legacy response-time medians and a lower-value priority doughnut were removed. The interface now prioritizes **where, what, and when**, including the leading source incident classifications.
 
+**Evidence quality is visible.** For every filter, the dashboard shows what fraction of source rows have recorded incident types, known transport indicators, and neighborhood labels matched to official boundaries. An observation always states its denominator and whether it covers the entire city or only matched neighborhoods. These indicators describe the completeness of the **imported fields**, not whether the city has published all emergencies.
+
+**Fail-closed export checks.** Before publishing each of the 48 snapshots, the exporter verifies that citywide daily/hourly/priority totals reconcile, top-category counts do not exceed the total, record-quality denominators are valid, and geographic matched/unmatched totals reconcile with the same selection. Contradictory snapshots are rejected rather than deployed.
+
 ## Run it locally
 
 ```bash
@@ -114,7 +120,7 @@ CI additionally runs a headless Chrome check for desktop/mobile map sizing, geog
 
 ## Next improvements
 
-Rather than adding more charts or neighborhood comparisons, the most useful next work is **automatic data-quality alerts**, **a concise filter-aware “What the data reveals” narrative**, **a short first-time visitor walkthrough**, and **measured load-speed/deployment-reliability results**. Those would make the existing analysis more trustworthy and easier to explain.
+The filter-aware **“What the data reveals”** narrative and on-page **evidence-quality checks** are now implemented. The next priorities are **automated alerts for failed or anomalous imports**, a concise **first-time visitor walkthrough**, and **measured performance and update-reliability results**. These would strengthen the site without unnecessary charts or a neighborhood-comparison feature.
 
 ---
 
