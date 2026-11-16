@@ -39,7 +39,7 @@ def test_static_build_contains_only_cleveland_source_and_aggregate_geography(tmp
         calls.append(("area",window,priority))
         assert "Ohio City" in known_neighborhoods
         return {"status":"ready","eligible_records":16,"mapped_records":16,
-                "mapping_coverage_pct":100.0,
+                "unmapped_records":0,"mapping_coverage_pct":100.0,
                 "areas":[{"name":"Ohio City","count":16}]}
 
     def fake_boundaries():
