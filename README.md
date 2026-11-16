@@ -2,7 +2,7 @@
 
 **A source-verified, interactive public-data explorer of emergency medical services activity in Cleveland, Ohio.**
 
-[Explore the v6 preview](https://dashboard-v6-real-cleveland.cleveland-ems-explorer.pages.dev/) · [Official City of Cleveland dataset](https://www.arcgis.com/home/item.html?id=d5d71757cc73400d843c98bcb46e46b6) · [Source code and setup](webapp/) · [GitHub Actions](https://github.com/Rousan21/cleveland-ems-analytics/actions)
+[Explore the live dashboard](https://cleveland-ems-explorer.pages.dev/) · [Official City of Cleveland dataset](https://www.arcgis.com/home/item.html?id=d5d71757cc73400d843c98bcb46e46b6) · [Source code and setup](webapp/) · [GitHub Actions](https://github.com/Rousan21/cleveland-ems-analytics/actions)
 
 ![Cleveland EMS geographic explorer — source-matched neighborhoods](assets/dashboard.png)
 
@@ -110,7 +110,6 @@ Static builds precompute **66 date/incident selections** to avoid repeated datab
 ```bash
 git clone https://github.com/Rousan21/cleveland-ems-analytics.git
 cd cleveland-ems-analytics
-git switch dashboard-v6-real-cleveland-data  # until PR #10 is merged
 cd webapp
 python3 -m venv .venv
 source .venv/bin/activate
@@ -129,7 +128,7 @@ python audit_cleveland_source.py
 python audit_map_geometry.py
 ```
 
-CI additionally runs a headless Chrome check for desktop/mobile map sizing, geographic interaction, daily-chart boundaries and recorded-category rendering.
+The pull-request preview workflow additionally runs a headless Chromium check for desktop/mobile map sizing, geographic interaction, daily-chart boundaries and recorded-category rendering.
 
 ## Next improvements
 
