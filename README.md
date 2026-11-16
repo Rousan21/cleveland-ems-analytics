@@ -91,6 +91,21 @@ The website remains focused on **where, what, and when**. This worked example be
 
 Static builds precompute **66 date/incident selections** to avoid repeated database queries on each click. The browser receives aggregates and public neighborhood polygons—no individual EMS records, patient addresses, source incident IDs, or database secrets.
 
+## Performance evolution: from live requests to static snapshots
+
+The first deployed version used a Streamlit prototype, followed by a FastAPI application hosted on Render with a Neon PostgreSQL database. On the Render-hosted version, visitors could experience an initial load of over a minute. A plausible major contributor was a cold start when the hosted service had been inactive; live backend startup and database queries were also on the request path. **We did not retain historical request traces or controlled before/after benchmarks**, so the original wait cannot be attributed to one cause with certainty.
+
+The key change was moving common dashboard reads off the live server and into a **precompute-and-publish** pipeline:
+
+1. GitHub Actions refreshes the public-source records in PostgreSQL and Python calculates validated aggregate results.
+2. The exporter prepares **66 combinations** (six time windows × All incident types plus ten leading usable classifications), including summary and neighborhood JSON.
+3. Cloudflare Pages serves those files and frontend assets to visitors. Changing a preset filter does **not** need to wake Render or query PostgreSQL in real time.
+4. The browser uses a five-minute in-memory cache for repeated selections, requests summary and geography data concurrently, ignores superseded filter responses, and updates existing Chart.js charts in place. Map rendering is deferred until needed.
+
+**Tradeoff:** The common views are based on the most recently published snapshot rather than a real-time database response. GitHub Actions and Cloudflare deployment must succeed for fresh data to appear. A separate Render/FastAPI service remains in the codebase, but the current static Cleveland dashboard disables arbitrary custom-date selections rather than silently presenting an unsupported live-query path.
+
+**What can be claimed:** The architecture removes server cold starts and on-demand database aggregation from the normal preset-filter path, which explains why the site now feels much faster. The reported minute-plus original load is an observed experience, **not a benchmark**; no verified current load-time measurement or percentage speedup is claimed.
+
 ## Engineering decisions and lessons
 
 **Fixing source provenance.** An audit exposed that a previous prototype had unintentionally used **Virginia Beach, Virginia** EMS data. I replaced its source with Cleveland's official feed, added independent Cleveland tables, and introduced checks that prevent incompatible data from being published. The old database records remain isolated for historical testing.
