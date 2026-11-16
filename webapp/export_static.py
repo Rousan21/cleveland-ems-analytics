@@ -45,10 +45,19 @@ def validate_aggregate(snapshot):
             not isinstance(row.get(key), int) or row[key] < 0 for row in rows
         ) or sum(row[key] for row in rows) != records:
             raise RuntimeError(f"Cleveland {field} aggregate totals disagree")
+    reason_total = snapshot.get("incident_reason_records")
+    excluded = snapshot.get("incident_type_excluded_count")
+    if (not isinstance(reason_total, int) or not isinstance(excluded, int)
+            or reason_total < 0 or excluded < 0
+            or reason_total + excluded != records):
+        raise RuntimeError("Cleveland incident reason denominator mismatch")
     top = snapshot.get("incident_types")
     if not isinstance(top, list) or len(top) > 8 or any(
-        not isinstance(row.get("count"), int) or row["count"] < 0 for row in top
-    ) or sum(row["count"] for row in top) > records:
+        not isinstance(row.get("count"), int) or row["count"] < 0
+        or not isinstance(row.get("type"), str)
+        or row.get("type", "").strip().upper() in {"NO DISPATCH", "UNCODED"}
+        for row in top
+    ) or sum(row["count"] for row in top) > reason_total:
         raise RuntimeError("Cleveland incident-type aggregate totals disagree")
     quality = snapshot.get("record_quality")
     if not isinstance(quality, dict):

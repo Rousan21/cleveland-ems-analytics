@@ -33,6 +33,13 @@ LOCAL = ZoneInfo("America/New_York")
 PAGE_SIZE = 1000
 VALID_PRIORITIES = {str(i) for i in range(1, 8)}
 COMMON_TYPE_LIMIT = 10  # Filter frequent source labels, not inferred medical groupings.
+NON_REASON_TYPES = frozenset({"NO DISPATCH", "UNCODED"})
+
+
+def is_incident_reason(label):
+    """Exclude non-reason / administrative categories only from reason analytics."""
+    return bool(label) and label.strip().upper() not in NON_REASON_TYPES
+
 
 
 
@@ -190,7 +197,8 @@ def common_incident_types():
             select(ClevelandRecord.incident_type,
                    func.count(ClevelandRecord.object_id).label("n"))
             .where(ClevelandRecord.incident_type.is_not(None),
-                   func.trim(ClevelandRecord.incident_type) != "")
+                   func.trim(ClevelandRecord.incident_type) != "",
+                   func.upper(func.trim(ClevelandRecord.incident_type)).not_in(NON_REASON_TYPES))
             .group_by(ClevelandRecord.incident_type)
             .having(func.count(ClevelandRecord.object_id) >= 11)
             .order_by(func.count(ClevelandRecord.object_id).desc(),
@@ -330,7 +338,10 @@ def summarize(*, window="30d", priority="all", incident_type="all", start_date=N
             ClevelandSyncRun.finished_at.desc()).limit(1))
     def iso(v):
         return as_utc(v).isoformat() if v else None
-    top_types = sorted(type_counts.items(), key=lambda x: (-x[1], x[0]))[:8]
+    reason_counts = {label:n for label,n in type_counts.items()
+                     if is_incident_reason(label)}
+    reason_total = sum(reason_counts.values())
+    top_types = sorted(reason_counts.items(), key=lambda x: (-x[1], x[0]))[:8]
     return {
         "window":window,"priority":priority,
         "incident_type":incident_type,
@@ -355,8 +366,10 @@ def summarize(*, window="30d", priority="all", incident_type="all", start_date=N
         "priorities":[{"priority":p,"count":priority_counts[p]} for p in
                       sorted(priority_counts,key=lambda x:(x=="Unknown",x))],
         "incident_types":[{"type":name,"count":n} for name,n in top_types],
-        "incident_type_category_count":len(type_counts),
-        "incident_type_other_count":max(0,records-sum(n for _,n in top_types)),
+        "incident_reason_records":reason_total,
+        "incident_type_excluded_count":records-reason_total,
+        "incident_type_category_count":len(reason_counts),
+        "incident_type_other_count":max(0,reason_total-sum(n for _,n in top_types)),
         "incident_type_uncoded_count":type_counts.get("Uncoded",0),
         "latest_call":iso(newest),"earliest_call":iso(earliest),
         "last_successful_sync":iso(last_success),

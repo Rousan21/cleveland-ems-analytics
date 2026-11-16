@@ -72,7 +72,7 @@ function hourLabel(hour) {
 function renderRecordedTypes(data) {
   const list = $('reason-rankings');
   if (!list) return;
-  const total = Math.max(0, Number(data.records || 0));
+  const total = Math.max(0, Number(data.incident_reason_records ?? data.records ?? 0));
   const ranked = (Array.isArray(data.incident_types) ? data.incident_types : [])
     .filter(x => x && typeof x.type === 'string' && Number(x.count) > 0)
     .slice(0,8);
@@ -80,7 +80,7 @@ function renderRecordedTypes(data) {
   if (!total || !ranked.length) {
     const empty = document.createElement('li');
     empty.className = 'reason-empty';
-    empty.textContent = 'No recorded incident categories for this selection. Try a wider period or All priorities.';
+    empty.textContent = 'No recorded incident reasons for this selection. Try a longer period or All incident types.';
     list.append(empty);
     $('reason-coverage').textContent = 'No records';
     $('reason-coverage-detail').textContent = 'No dispatch-type distribution is available.';
@@ -119,11 +119,11 @@ function renderRecordedTypes(data) {
     const other = Math.max(0,total-shown);
     $('reason-coverage').textContent = percent(shown,total);
     $('reason-coverage-detail').textContent =
-      `Top ${ranked.length} of ${totalKinds} recorded categories cover ${number(shown)} of ${number(total)} published rows. ${number(other)} rows fall in other categories.`;
+      `${number(shown)} of ${number(total)} reason-classified rows; ${number(other)} have other recorded reasons.`;
   }
   const rangeName = ({'24h':'past day','7d':'past 7 days','30d':'past 30 days','90d':'past 3 months','1y':'past year','all':'all imported dates'})[data.window]||data.window;
   $('reason-filter-scope').textContent =
-    `Citywide · ${rangeName}. Selecting a neighborhood changes the map only.`;
+    `Citywide · ${rangeName}. “NO DISPATCH” and uncoded rows are excluded from reason rankings, but remain in total records. Selecting a neighborhood changes the map only.`;
 }
 
 function renderSummary(data) {
@@ -131,17 +131,10 @@ function renderSummary(data) {
     throw new Error('Wrong EMS data source. Refusing to display non-Cleveland statistics.');
   }
   state.currentData = data;
-  // Source incident category labels describe CAD records, not a measured
-  // dispatch outcome. The separate isDispatch field is authoritative for
-  // the "unit dispatched" indicator; they can legitimately differ.
-  $('no-dispatch-explain').hidden = data.selected_incident_type !== 'NO DISPATCH';
   $('total-calls').textContent = number(data.records);
   const rate = (part, valid) => valid > 0 ? percent(part, valid) : 'N/A';
-  $('dispatch-share').textContent = rate(data.dispatched_count, data.dispatch_flag_known);
-  $('dispatch-meta').textContent = `${number(data.dispatched_count)} of ${number(data.dispatch_flag_known)} rows indicate ≥1 unit dispatched`;
   $('transport-share').textContent = rate(data.transported_count, data.transport_flag_known);
   $('transport-meta').textContent = `${number(data.transported_count)} of ${number(data.transport_flag_known)} rows indicate patient transport; not unique patients`;
-  $('areas-reported').textContent = number(data.neighborhoods_in_source);
 
   $('sync-indicator').textContent = data.last_sync_failed
     ? 'Update delayed — latest import failed'

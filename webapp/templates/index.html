@@ -74,15 +74,12 @@
           </div>
           <label class="priority-select" for="incident-type">Incident type <select id="incident-type" aria-label="Filter by recorded Cleveland EMS incident type"><option value="all">All incident types</option></select></label>
         </div>
-        <p id="no-dispatch-explain" class="no-dispatch-explain" role="note" hidden><strong>About “NO DISPATCH”:</strong> This is the City's recorded incident classification, not proof that no unit was sent. The separate dispatch indicator can still be true.</p>
         <div id="custom-range" class="custom-range" hidden><label>From <input type="date" id="start-date"></label><label>Through <input type="date" id="end-date"></label><button id="apply-custom" type="button">Apply range</button></div>
         <div id="error-message" role="alert" class="error" hidden></div>
       </section>
       <section class="kpi-grid" aria-label="Cleveland EMS summary metrics">
-        <article class="kpi"><div class="kpi-label">Published EMS records <span>↗</span></div><div class="kpi-value" id="total-calls">—</div><div class="kpi-meta">Cleveland, Ohio · selected date window</div></article>
-        <article class="kpi"><div class="kpi-label">Unit dispatch reported <span title="City of Cleveland isDispatch=true means one or more EMS units were dispatched for the incident, not the number of units.">ⓘ</span></div><div class="kpi-value" id="dispatch-share">—</div><div class="kpi-meta" id="dispatch-meta">Of records with a known dispatch flag</div></article>
+        <article class="kpi"><div class="kpi-label">Published EMS records <span>↗</span></div><div class="kpi-value" id="total-calls">—</div><div class="kpi-meta">Cleveland source records · selected filters</div></article>
         <article class="kpi"><div class="kpi-label">Patient transport reported <span title="Cleveland CAD isTransport=true means the incident resulted in transporting a patient. It does not establish hospital admission, destination, transport time or the number of unique people.">ⓘ</span></div><div class="kpi-value" id="transport-share">—</div><div class="kpi-meta" id="transport-meta">Of records with a known patient-transport indicator</div></article>
-        <article class="kpi kpi-dark"><div class="kpi-label">Neighborhoods reported <span>⬡</span></div><div class="kpi-value" id="areas-reported">—</div><div class="kpi-meta">Distinct source neighborhood labels in selection</div></article>
       </section>
       <section id="geography" class="geo-section" aria-labelledby="geo-title">
         <div class="section-heading geo-head">
@@ -131,8 +128,8 @@
         </div>
         <div class="reasons-content">
           <ol class="reason-rankings" id="reason-rankings" aria-label="Eight leading source incident classifications"><li class="reason-empty">Loading source incident classifications…</li></ol>
-          <p class="reason-inline-note">Top eight represent <strong id="reason-coverage">—</strong> of selected records. <span id="reason-coverage-detail"></span></p>
-          <p id="reason-filter-scope" class="reason-scope">Citywide · current date selection</p>
+          <p class="reason-inline-note">Top eight represent <strong id="reason-coverage">—</strong> of records with an incident reason. <span id="reason-coverage-detail"></span></p>
+          <p id="reason-filter-scope" class="reason-scope">Citywide · administrative and uncoded records remain in overall totals, not reason rankings.</p>
         </div>
       </section>
       <section id="trends" class="two-col trend-only"><article class="panel wide"><div class="panel-header"><div><div class="overline">03 / ACTIVITY</div><h2>Published EMS records by day</h2><p>Comparable complete Cleveland-local dates within the selected period.</p></div><div class="panel-actions"><span class="tag">DAILY</span><button type="button" id="download-daily" class="small-action" title="Download the aggregated daily counts as CSV">Export CSV <span aria-hidden="true">↗</span></button></div></div><div class="chart-wrap"><canvas id="volume-chart" aria-label="Daily published Cleveland EMS record counts" role="img"></canvas></div><p class="data-quality-note" id="daily-chart-note" role="note">Comparing complete Cleveland-local dates only. Partial boundary dates remain in the totals and CSV export, not the daily trend. Recent published records can still be revised.</p></article></section>

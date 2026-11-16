@@ -198,17 +198,11 @@
 .geo-source-note {display:inline;color:#7d9eae;font-size:10px;font-weight:500;white-space:normal;margin-left:5px}
 .geo-footnote{font-size:10px;line-height:1.75}
 
-/* "NO DISPATCH" is a source label; it is not the same as isDispatch=false. */
-.no-dispatch-explain {
-  max-width:920px;
-  margin:10px 2px 0;
-  padding:10px 13px;
-  background:rgba(19,59,73,.58);
-  color:#a7c9d5;
-  border-left:2px solid #65cdbb;
-  border-radius:5px;
-  font-size:11px;
-  line-height:1.65;
+
+/* Only two distinct, useful KPIs: selected published records and patient transport. */
+.kpi-grid {grid-template-columns:repeat(2,minmax(0,1fr))}
+.kpi-grid .kpi {min-height:133px}
+@media(max-width:600px) {
+  .kpi-grid {grid-template-columns:1fr}
+  .kpi-grid .kpi {min-height:116px}
 }
-.no-dispatch-explain strong {color:#d5ede9}
-.no-dispatch-explain[hidden] {display:none!important}
