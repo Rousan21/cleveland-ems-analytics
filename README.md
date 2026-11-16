@@ -1,117 +1,117 @@
 # Cleveland EMS Analytics
 
-**An independent, end-to-end public safety analytics project built with Python, SQL, FastAPI, Neon PostgreSQL, automated data ingestion, Cloudflare Pages, Chart.js and Leaflet.**
+**A source-verified, interactive public-data explorer of emergency medical services activity in Cleveland, Ohio.**
 
-**[Live Cloudflare dashboard](https://cleveland-ems-explorer.pages.dev/)** · [Official Cleveland EMS dataset](https://www.arcgis.com/home/item.html?id=d5d71757cc73400d843c98bcb46e46b6) · [FastAPI documentation](https://cleveland-ems-analytics.onrender.com/docs)
+[Explore the v6 preview](https://dashboard-v6-real-cleveland.cleveland-ems-explorer.pages.dev/) · [Official City of Cleveland dataset](https://www.arcgis.com/home/item.html?id=d5d71757cc73400d843c98bcb46e46b6) · [Source code and setup](webapp/) · [GitHub Actions](https://github.com/Rousan21/cleveland-ems-analytics/actions)
 
-> **Important release note:** The live site may still show an older archived prototype until the v6 source-correction PR is merged and deployed. The v6 branch is the accurate Cleveland-only implementation; do not quote older website statistics as Cleveland results.
+![Cleveland EMS geographic explorer — actual Cloudflare preview](assets/dashboard.png)
 
-## The problem
+*Screenshot from the live v6 preview: city neighborhoods shaded by published EMS record volume, with a ranked geographic explorer.*
 
-Public EMS data can answer useful questions—but only if data provenance, geography, and definitions are sound. A useful dashboard should help people examine:
+> **Release status:** v6 is currently in [Pull Request #10](https://github.com/Rousan21/cleveland-ems-analytics/pull/10). It has passed automated and browser tests but **has not been merged into `main`**. The production URL may still display an older prototype that used an incorrect Virginia Beach source. Do not interpret earlier production statistics as Cleveland findings.
 
-- **Which Cleveland neighborhoods have higher published EMS record counts?** An interactive choropleth shades Cleveland neighborhoods using the source-provided neighborhood field. A ranked list and details panel show count, rank, share and data-matching coverage.
-- **When does activity occur?** Compare published rows by day and Cleveland-local incident hour for six preset time windows.
-- **What types of EMS situations appear most often?** Explore a ranked horizontal chart of the eight most frequent recorded dispatch categories, each with its share of the selected Cleveland rows. Filter by period and source priority code (1–7).
-- **How often are records marked dispatched or transported?** Compute proportions **only among rows with an explicit known flag**; Cleveland defines isTransport=true as an incident resulting in patient transport, but the field alone does not establish a unique patient count, destination or hospital admission.
+## Why this project exists
 
-These are **descriptive, exploratory metrics**, not official ambulance performance statistics or emergency-deployment recommendations.
+Public emergency-services records can help answer **where activity is concentrated, which situations are commonly recorded, and when activity occurs**. But raw counts can easily mislead: the source city, geographic labels, publication timing, and record definitions all matter.
 
-## Official Cleveland data—not another city's data
+I built Cleveland EMS Analytics as a practical, end-to-end data project: from public ArcGIS ingestion and PostgreSQL storage to interactive geographic exploration, evidence-led charts, and explicit uncertainty.
 
-**The v6 dashboard uses this exact authoritative ArcGIS item:**
+## What you can explore
 
-- **Publisher:** City of Cleveland, Ohio, Division of Emergency Medical Service (EMS).
-- **ArcGIS item:** [EMS Calls for Service, `d5d71757cc73400d843c98bcb46e46b6`](https://www.arcgis.com/home/item.html?id=d5d71757cc73400d843c98bcb46e46b6)
-- **Service:** [`CAD_EMS_Public` table](https://services3.arcgis.com/dty2kHktVXHrqO8i/ArcGIS/rest/services/data/FeatureServer/0)
-- **Available attributes:** `ObjectId`, `IncidentDate`, `city`, `neighborhood`, `census_tract`, `CurrentPriorityKey`, `IncidentTypeDescription`, `isDispatch`, and `isTransport`.
+| Question | What the dashboard shows |
+| --- | --- |
+| **Where is published activity concentrated?** | Cleveland neighborhood choropleth, top-ten list, selected area counts, geographic match coverage and privacy-aware category insight |
+| **What kinds of calls appear most often?** | Top-eight recorded **dispatch classifications**, shown as readable horizontal bars with counts and shares of all selected records |
+| **When are calls recorded?** | A complete-local-day trend and hour-of-day distribution |
+| **Are patients transported or units dispatched?** | Source-based transport and dispatch indicator percentages calculated only among known values |
+| **How do filters affect the data?** | Six preset date windows, Cleveland priority codes 1–7, and aggregate-only daily CSV export |
 
-A source-validation check confirms the expected fields. The importer accepts **only** records with `city = Cleveland` (case-insensitive) and a valid incident timestamp. It stores no incident number, patient information, or precise call address.
+![Top dispatch classifications and their shares of Cleveland EMS records](assets/incident-types.png)
 
-**Source correction:** The earlier v2/v3 portfolio prototype inadvertently ingested records from **Virginia Beach, Virginia** into `ems_calls_v2`. An independent database audit caught this mismatch. The v6 pipeline uses separate `cleveland_ems_records` and `cleveland_ems_sync_runs` tables, and the public exporter refuses to publish data without the exact Cleveland ArcGIS source ID. The previous code and table are kept isolated for historical regression testing and are **not** used for the new dashboard. Existing legacy records are not deleted by this migration.
+*The citywide incident-type chart responds to date and priority filters. Selecting a neighborhood instead updates the map's geographic detail, not the citywide charts. Labels reflect dispatch-time classifications, **not medical diagnoses**.*
 
-## The geographic explorer
+## Source, integrity and definitions
 
-A **source-first geographic join** is possible because official Cleveland CAD records already contain a neighborhood label:
+- **Authoritative source:** City of Cleveland, Ohio, [`CAD_EMS_Public` ArcGIS table](https://services3.arcgis.com/dty2kHktVXHrqO8i/ArcGIS/rest/services/data/FeatureServer/0), item `d5d71757cc73400d843c98bcb46e46b6`. Imports reject rows whose `city` field is not Cleveland and check expected source fields before writing.
+- **Published records ≠ unique emergencies:** one row is not independently verified as one incident or patient. Counts are descriptive, not a measure of incidence, ambulance demand, or response performance.
+- **Geography:** source-provided neighborhood labels are matched case-insensitively to official Cleveland GIS polygons. Unmatched records are excluded from mapped counts, match coverage is published, and area/category cells below **11** are withheld.
+- **Incident classifications:** `IncidentTypeDescription` reflects the situation as understood at dispatch time; it is not a confirmed diagnosis.
+- **Dispatch and transport:** the City's field metadata defines `isDispatch=true` as one or more units dispatched, and `isTransport=true` as an incident resulting in patient transport. Neither gives the number of unique patients, units, hospital admissions, or a response-time measurement.
+- **Priorities:** City metadata describes a usual priority ranking from 1 (highest) to 5 (lowest); the live source also contains codes 6 and 7, whose precise meaning and Alpha–Echo correspondence are unverified.
+- **Publication dates:** a rolling window begins mid-day. Partial boundary dates are excluded from the **comparative daily chart** but retained in headline totals and CSV. Even complete older dates may later be revised.
 
-1. Ingest the source-provided neighborhood names from Cleveland records.
-2. Retrieve Cleveland GIS neighborhood boundary polygons.
-3. Match names case-insensitively; **do not guess** mismatched names.
-4. Count published rows by neighborhood for the selected period and source priority code.
-5. Suppress area cells smaller than 11.
-6. Map only reportable aggregates; publish an exact match-coverage percentage, matched/unmatched totals and the top 10 ranked neighborhoods.
-
-The map and ranking show **raw published record counts**, not unique emergencies, per-resident incidence, disease risk, ambulance demand, or measured service coverage. Areas with unavailable/suppressed counts do not mean zero calls.
-
-## Data pipeline
+## Architecture
 
 ```text
-Official City of Cleveland CAD_EMS_Public
-                |
-      GitHub Actions importer
-    source ID + schema checks
-    city="Cleveland" required
-                |
-      Neon PostgreSQL (v6)
-     cleveland_ems_records
-       (no incident IDs)
-                |
-      Python aggregation
-  6 time windows × 8 priority filters
-                |
-    Public summary JSON +
-  validated neighborhood GIS
-                |
-         Cloudflare Pages
-   Leaflet / Chart.js / JS / CSS
-                |
-     Browser: map + rankings
+        City of Cleveland ArcGIS CAD_EMS_Public
+                         │
+              Schema + city validation
+                         │
+              Python incremental importer
+                  ObjectId upserts
+                         │
+                Neon PostgreSQL
+           cleveland_ems_records
+                         │
+          Python aggregate & area summaries
+                  │               │
+     Official Cleveland     6 date windows ×
+     neighborhood polygons  8 priority choices
+                  │               │
+                  └───────┬───────┘
+                          ▼
+            Privacy-thresholded JSON
+                          │
+                   Cloudflare Pages
+            Leaflet map · category bars
+             daily/hourly charts · CSV
 
-Optional FastAPI endpoint: identical Cleveland-only summary and area aggregations.
-Historical v2/Virginia Beach modules and tables remain archived, not displayed.
+     GitHub Actions = tests + source QA + scheduled sync
+     FastAPI = optional Cleveland-only aggregate API
 ```
 
-The deploy exports **48 exact preset filter combinations**, calculated from the same fixed UTC timestamp for a consistent snapshot. GitHub Actions refreshes recent records daily, using idempotent `ObjectId` upserts. The first bootstrap imports a longer historical window; `All imported` means the records currently stored in Neon, **not all years in the source**.
+**Stack:** Python 3.12, SQLAlchemy, PostgreSQL/Neon, FastAPI, GitHub Actions, Cloudflare Pages, JavaScript, Chart.js, Leaflet and ArcGIS REST.
 
-No database credentials or individual EMS records are delivered to browsers. Custom date filtering is temporarily disabled in the Cloudflare UI during the verified-source migration; the FastAPI interface supports custom dates after its corrected deployment.
+Static builds precompute **48 date/priority selections** to avoid repeated database queries on each click. The browser receives aggregates and public neighborhood polygons—no individual EMS records, patient addresses, source incident IDs, or database secrets.
 
-## Real-world engineering and testing
+## Engineering decisions and lessons
 
-- Python/SQL ETL with ArcGIS keyset pagination, schema/municipality validation and upserts.
-- Neon PostgreSQL persistent storage and isolated source-specific tables.
-- Date handling in `America/New_York` with UTC source timestamps.
-- Responsive dark dashboard, interactive Leaflet choropleth, ranked area selection and CSV export of daily **aggregate counts only**.
-- Geographic name-matching and privacy suppression for small cells.
-- pytest covers source provenance, cross-city rejection, idempotency, API behavior, geographic matching and exported asset safety; GitHub Actions checks JavaScript syntax.
-- Cloudflare static deployment keeps routine filtering fast without a sleeping Python instance.
+**Fixing source provenance.** An audit exposed that a previous prototype had unintentionally used **Virginia Beach, Virginia** EMS data. I replaced its source with Cleveland's official feed, added independent Cleveland tables, and introduced checks that prevent incompatible data from being published. The old database records remain isolated for historical testing.
 
-Local tests:
+**Removing misleading trends.** Partial first/current days created apparent dramatic declines in a rolling 30-day graph. The dashboard now plots comparable complete Cleveland-local dates while disclosing excluded dates and preserving full-period totals.
+
+**Making the map robust.** The interface uses verified neighborhood labels and polygons, displays match coverage, suppresses small-area cells, and is tested in a real browser. Serving Leaflet styles locally also resolved a real CSS/CDN issue that distorted the map.
+
+**Choosing useful metrics.** Unsupported legacy response-time medians and a lower-value priority doughnut were removed. The interface now prioritizes **where, what, and when**, including the leading source incident classifications.
+
+## Run it locally
 
 ```bash
-cd webapp
+git clone https://github.com/Rousan21/cleveland-ems-analytics.git
+cd cleveland-ems-analytics/webapp
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
+python cleveland_pipeline.py sync --days 30
+uvicorn main:app --reload
+```
+
+Open `http://127.0.0.1:8000` or `http://127.0.0.1:8000/docs`. A local SQLite DB works without credentials; set `EMS_DATABASE_URL` to use your own Neon PostgreSQL database. See [webapp/README.md](webapp/README.md) for detailed commands. Import a longer history to populate the year/all-imported presets.
+
+```bash
 pytest -q
 node --check static/dashboard.js
 node --check static/v6.js
+python audit_cleveland_source.py
+python audit_map_geometry.py
 ```
 
-The source-check diagnostic can be run manually with `python audit_cleveland_source.py`, using only the public ArcGIS API. A Neon URL goes in `EMS_DATABASE_URL` as a GitHub secret or environment variable—never committed.
+CI additionally runs a headless Chrome check for desktop/mobile map sizing, geographic interaction, daily-chart boundaries and recorded-category rendering.
 
-## Interpretation and limitations
+## Next improvements
 
-- **Published records are not independently verified unique emergency incidents.** One incident may generate multiple rows; do not report the count as patients or ambulance deployments.
-- **Priority codes 1–7** are reproduced from the source. Their clinical meanings are not guessed.
-- **Dispatch/transport flags** indicate CAD source classifications. The City's published field glossary defines `isTransport=true` as an incident resulting in patient transport and `isDispatch=true` as one or more units dispatched. They are record-level indicators, not unique patient counts or hospital admissions. The Cleveland feed does **not** include the call-to-dispatch and on-scene timestamps used in the archived prototype; v6 removes those elapsed-time metrics.
-- **Incident-type bar chart** shows the eight highest-frequency dispatch classifications with exact shares of all selected citywide rows; these are not confirmed medical diagnoses. The priority donut was removed because 6–7 have undocumented meanings.
-- **Geographic rankings** include only records whose source neighborhoods match the known GIS boundary labels. Coverage is shown so visitors can judge how representative a ranking is.
-- **Recent-day counts** may be incomplete or revised later. The site does not claim a specific reporting lag without measurement.
-- **Raw counts are not risk rates:** differences in population, visitor activity and land use affect comparisons. A future population-adjusted view would need carefully matched, credible denominators.
-- **No patient-level maps:** individual incident points and addresses are never distributed.
-
-## Roadmap
-
-The most compelling future extensions are: year-over-year **same-season** comparisons, validated population-normalized geographic rates, testable associations between recorded incident categories and time-of-day patterns, and verified area coverage auditing. A benchmarked deployment-performance comparison would also strengthen engineering claims. Forecasting or resource optimization should come **only after** evaluating data completeness, bias, leakage and appropriate operational ground truth.
+Rather than adding more charts or neighborhood comparisons, the most useful next work is **automatic data-quality alerts**, **a concise filter-aware “What the data reveals” narrative**, **a short first-time visitor walkthrough**, and **measured load-speed/deployment-reliability results**. Those would make the existing analysis more trustworthy and easier to explain.
 
 ---
 
-Independent portfolio project developed by **Adam Al-Rousan**. Not affiliated with or endorsed by the City of Cleveland or its Division of EMS. Data is provided by the City's ArcGIS public-data service. Public-data limitations and updates remain subject to the City's own terms and disclaimers.
+**Independently designed and developed by Adam Al-Rousan.** Not affiliated with or endorsed by the City of Cleveland or its EMS division. Exploratory public-data analysis, not a live dispatch monitor or a basis for emergency-resource deployment.
