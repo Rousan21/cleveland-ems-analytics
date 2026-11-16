@@ -1,58 +1,76 @@
-# Cleveland EMS Analytics — FastAPI Web Application
+# Cleveland EMS Analytics — application and pipeline
 
-**[Live website](https://cleveland-ems-analytics.onrender.com/)** · [Repository overview](../README.md)
+[Project case study and screenshots](../README.md) · [Verified v6 Cloudflare preview](https://dashboard-v6-real-cleveland.cleveland-ems-explorer.pages.dev/) · [Official Cleveland CAD source](https://www.arcgis.com/home/item.html?id=d5d71757cc73400d843c98bcb46e46b6)
 
-This `webapp/` directory is the deployed Python FastAPI application. Its public frontend uses HTML/CSS/JavaScript, Chart.js, and a tile-free Leaflet vector map. `SQLAlchemy` supports SQLite for local testing and Neon PostgreSQL for public hosting. The original Streamlit prototype remains at the repository root.
+This folder contains the **Cleveland-only v6 application**: Python ingestion, SQLAlchemy models, geographic aggregation, a FastAPI API, a Cloudflare static exporter, and the Leaflet/Chart.js frontend.
 
-## Local development
+> **Deployment status:** This code is in [PR #10](https://github.com/Rousan21/cleveland-ems-analytics/pull/10) and has not been merged into `main`. The earlier `ingest.py` and `legacy_virginia_beach_api.py` represent an archived **Virginia Beach prototype**, not the current Cleveland data source. Do not use those for a Cleveland import.
 
-From the `webapp/` directory:
+## Local setup
 
 ```bash
+cd webapp
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-python ingest.py --days 30
+
+# Local SQLite is the default when EMS_DATABASE_URL is unset.
+# To use Neon, set EMS_DATABASE_URL to YOUR database connection URI privately.
+python cleveland_pipeline.py sync --days 30
 uvicorn main:app --reload
 ```
 
-Open `http://127.0.0.1:8000` and the OpenAPI page at `http://127.0.0.1:8000/docs`. The default local database is SQLite at `data/ems_v2.db`. The `ingest.py` script fetches paginated source records; `--days 30` refreshes the recent window and `--all` requests all available source history. An `OBJECTID` upsert means the same source row won't be inserted twice by rerunning the importer.
+Open `http://127.0.0.1:8000` or FastAPI documentation at `http://127.0.0.1:8000/docs`.
 
-To connect to PostgreSQL, set `EMS_DATABASE_URL` in the application process environment, using a standard Neon connection URL. Keep database passwords in a private environment variable, not committed files.
-
-## Deployment
-
-The deployed project uses:
-
-- Render (free Python web service), configured from the GitHub repository with root directory `webapp`.
-- Neon PostgreSQL, configured through Render environment variable `EMS_DATABASE_URL`.
-- GitHub Actions workflow `daily-ems-sync.yml` to import a rolling 30-day source window each day with the GitHub repository secret `EMS_DATABASE_URL`.
-- `ci.yml` for tests on commits and pull requests.
-
-The repository-level `render.yaml` provides a corresponding example service configuration. The free web service may sleep while idle; no persistent database records are stored on Render's temporary filesystem. Follow `../DEPLOY_RENDER_NEON.md` for initial setup steps.
-
-## Source-data interpretation
-
-The dashboard intentionally counts **published dispatch records** and does *not* claim these equal independent emergency incidents. The public ArcGIS table contains `EMS_Call_Number` and `Unit_Callsign` in addition to `OBJECTID`. A diagnostic audit found many different source rows sharing call/unit/dispatch-time identifiers. Some recent days also contain fewer published source rows; reporting lag or corrections remain possible.
-
-Read-only diagnostics:
+## Useful commands
 
 ```bash
-python audit_source.py --days 30
-```
+# Import / upsert recent Cleveland CAD records:
+python cleveland_pipeline.py sync --days 45
 
-Or use GitHub Actions **Audit EMS source data** with a chosen date window. Audit output contains only aggregate statistics, not individual source IDs or addresses. The audit never connects to Neon or edits the database.
+# One-time longer backfill only if Cleveland table is empty:
+python cleveland_pipeline.py bootstrap --days 400
 
-The neighborhood map uses the city’s [official neighborhood boundary layer](https://services7.arcgis.com/ZodPOMBKsdAsTqF4/ArcGIS/rest/services/Cleveland_Neighborhoods/FeatureServer/147) as a geographic reference. EMS source rows do not carry a validated neighborhood/point assignment. The app must not display area-specific EMS call totals until independently verified assignments are available. Area totals below 11 records are suppressed.
+# Create the 48 static filter snapshots and public GIS assets:
+# Requires EMS_DATABASE_URL for the chosen PostgreSQL database.
+python export_static.py --output ../site_build
 
-Public analytics uses time-zone-aware date filtering (Cleveland local time), median call-to-dispatch and call-to-scene intervals where both timestamps are valid, and aggregated daily, hourly and priority statistics. These are exploratory measures, **not official response-time performance statistics**.
-
-## Tests
-
-```bash
+# Offline tests, JavaScript syntax checks, read-only source and GIS audits:
 pytest -q
+node --check static/dashboard.js
+node --check static/v6.js
+python audit_cleveland_source.py
+python audit_map_geometry.py
 ```
 
-Tests cover date handling, APIs, source-data auditing, geography/privacy guards, and import logic using mocked external services. Actual ArcGIS availability and rendering should still be validated in a live browser.
+## Official source contract
 
-**Data source:** [City of Cleveland Division of EMS — ArcGIS](https://www.arcgis.com/home/item.html?id=d5d71757cc73400d843c98bcb46e46b6).
+**Source:** [City of Cleveland, Ohio `CAD_EMS_Public` ArcGIS table](https://services3.arcgis.com/dty2kHktVXHrqO8i/ArcGIS/rest/services/data/FeatureServer/0), item `d5d71757cc73400d843c98bcb46e46b6`.
+
+| Attribute | Use |
+| --- | --- |
+| `ObjectId` | Idempotent upsert key; not exported to browser |
+| `IncidentDate`, `city` | Cleveland-local timing and strict jurisdiction validation |
+| `neighborhood`, `census_tract` | Geographic context; exact-name matching to Cleveland GIS neighborhood polygons |
+| `CurrentPriorityKey` | Literal filters 1–7; meanings of codes 6–7 are not confirmed |
+| `IncidentTypeDescription` | Dispatch-time category; not a verified medical diagnosis |
+| `isDispatch` | City definition: one or more units dispatched when true |
+| `isTransport` | City definition: the incident resulted in patient transport when true |
+
+Only minimal analytic fields are stored in `cleveland_ems_records`; `cleveland_ems_sync_runs` separately records source refresh attempts. The source is validated before importing, and the exporter rejects data without the correct Cleveland provenance.
+
+## Aggregation and privacy
+
+- Six time windows × eight priority choices generate **48 precomputed** combinations of citywide counts and area summaries.
+- The top-eight incident-classification chart reports counts and percentages of **all selected Cleveland rows**. Categories beyond the top eight remain part of the denominator.
+- The map uses `neighborhood` labels that match official boundaries; unmatched records are excluded from mapped totals, and the site reports matching coverage.
+- Area and neighborhood-category counts under **11** are not exposed as individual cells.
+- The daily trend uses complete `America/New_York` calendar days when comparing days; incomplete rolling-window boundary dates remain in KPIs and daily CSV.
+- Source records are **not** independently verified unique emergency incidents. No patient addresses, incident IDs, or individual call coordinates reach the frontend.
+- Transport and dispatch indicators do not independently measure the number of patients, units, hospital admissions, or emergency response time.
+
+## Validation
+
+`pytest -q` covers source-city and schema guards, idempotency, APIs, privacy thresholding, geographic joins, aggregate filters and snapshot assets. GitHub Actions runs additional source and polygon checks and a headless desktop/mobile Chrome review of the deployed preview, including the map, the call-type ranking and daily trend endpoints.
+
+Cloudflare Pages serves only snapshots and frontend files. The database URI and Cloudflare deployment credentials are stored in GitHub Actions secrets, not in the codebase. Static preview deployments remain separate from production until the PR is merged.
