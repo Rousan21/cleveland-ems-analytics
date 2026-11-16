@@ -4,10 +4,6 @@
 
 [Explore the v6 preview](https://dashboard-v6-real-cleveland.cleveland-ems-explorer.pages.dev/) · [Official City of Cleveland dataset](https://www.arcgis.com/home/item.html?id=d5d71757cc73400d843c98bcb46e46b6) · [Source code and setup](webapp/) · [GitHub Actions](https://github.com/Rousan21/cleveland-ems-analytics/actions)
 
-![Cleveland EMS Analytics — verified dashboard overview](assets/dashboard-overview.png)
-
-*Verified browser screenshot of the v6 dashboard's introduction, filters, and source-based KPIs (November 15, 2026).*
-
 ![Cleveland EMS geographic explorer — source-matched neighborhoods](assets/dashboard.png)
 
 *The interactive geographic explorer: Cleveland neighborhoods shaded by published EMS record volume, with rankings and geographic match coverage.*
@@ -60,7 +56,7 @@ I built Cleveland EMS Analytics as a practical, end-to-end data project: from pu
           Python aggregate & area summaries
                   │               │
      Official Cleveland     6 date windows ×
-     neighborhood polygons  8 priority choices
+     neighborhood polygons 11 incident choices
                   │               │
                   └───────┬───────┘
                           ▼
@@ -88,9 +84,9 @@ Static builds precompute **66 date/incident selections** to avoid repeated datab
 
 **Choosing useful metrics.** Unsupported legacy response-time medians and a lower-value priority doughnut were removed. The interface now prioritizes **where, what, and when**, including the leading source incident classifications.
 
-**Evidence quality is visible.** For every filter, the dashboard shows what fraction of source rows have recorded incident types, known transport indicators, and neighborhood labels matched to official boundaries. An observation always states its denominator and whether it covers the entire city or only matched neighborhoods. These indicators describe the completeness of the **imported fields**, not whether the city has published all emergencies.
+**Data quality is verified behind the scenes.** Every filter is checked for consistent citywide and geographic totals, field-value completeness, and source provenance. These tests run during deployment rather than cluttering the public dashboard with technical diagnostics.
 
-**Fail-closed export checks.** Before publishing each of the 48 snapshots, the exporter verifies that citywide daily/hourly/priority totals reconcile, top-category counts do not exceed the total, record-quality denominators are valid, and geographic matched/unmatched totals reconcile with the same selection. Contradictory snapshots are rejected rather than deployed.
+**Fail-closed export checks.** Before publishing each of the 66 snapshots, the exporter verifies that citywide daily/hourly/priority totals reconcile, top-category counts do not exceed the total, record-quality denominators are valid, and geographic matched/unmatched totals reconcile with the same selection. Contradictory snapshots are rejected rather than deployed.
 
 ## Run it locally
 

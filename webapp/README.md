@@ -31,7 +31,7 @@ python cleveland_pipeline.py sync --days 45
 # One-time longer backfill only if Cleveland table is empty:
 python cleveland_pipeline.py bootstrap --days 400
 
-# Create the 48 static filter snapshots and public GIS assets:
+# Create 66 static date/incident-type snapshots and public GIS assets:
 # Requires EMS_DATABASE_URL for the chosen PostgreSQL database.
 python export_static.py --output ../site_build
 
@@ -52,7 +52,7 @@ python audit_map_geometry.py
 | `ObjectId` | Idempotent upsert key; not exported to browser |
 | `IncidentDate`, `city` | Cleveland-local timing and strict jurisdiction validation |
 | `neighborhood`, `census_tract` | Geographic context; exact-name matching to Cleveland GIS neighborhood polygons |
-| `CurrentPriorityKey` | Literal filters 1–7; meanings of codes 6–7 are not confirmed |
+| `CurrentPriorityKey` | Preserved source codes for internal provenance and testing; not a public dashboard filter |
 | `IncidentTypeDescription` | Dispatch-time category; not a verified medical diagnosis |
 | `isDispatch` | City definition: one or more units dispatched when true |
 | `isTransport` | City definition: the incident resulted in patient transport when true |
@@ -62,7 +62,7 @@ Only minimal analytic fields are stored in `cleveland_ems_records`; `cleveland_e
 ## Aggregation and privacy
 
 - Six time windows × (All types plus ten common source-based incident types) generate **66 precomputed** combinations of citywide counts and area summaries.
-- The top-eight incident-classification chart reports counts and percentages of **all selected Cleveland rows**. Categories beyond the top eight remain part of the denominator.
+- “All incident types” displays the top-eight classification chart. The separate dropdown offers the ten most frequent recorded source types, each of which filters citywide metrics, the map, and daily/hourly trends; categories beyond the top eight remain part of the All-types chart denominator.
 - The map uses `neighborhood` labels that match official boundaries; unmatched records are excluded from mapped totals, and the site reports matching coverage.
 - Area and neighborhood-category counts under **11** are not exposed as individual cells.
 - The daily trend uses complete `America/New_York` calendar days when comparing days; incomplete rolling-window boundary dates remain in KPIs and daily CSV.
