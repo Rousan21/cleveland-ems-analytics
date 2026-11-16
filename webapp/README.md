@@ -1,10 +1,10 @@
 # Cleveland EMS Analytics — application and pipeline
 
-[Project case study and screenshots](../README.md) · [Verified v6 Cloudflare preview](https://dashboard-v6-real-cleveland.cleveland-ems-explorer.pages.dev/) · [Official Cleveland CAD source](https://www.arcgis.com/home/item.html?id=d5d71757cc73400d843c98bcb46e46b6)
+[Project case study and screenshots](../README.md) · [Live Cleveland EMS dashboard](https://cleveland-ems-explorer.pages.dev/) · [Official Cleveland CAD source](https://www.arcgis.com/home/item.html?id=d5d71757cc73400d843c98bcb46e46b6)
 
 This folder contains the **Cleveland-only v6 application**: Python ingestion, SQLAlchemy models, geographic aggregation, a FastAPI API, a Cloudflare static exporter, and the Leaflet/Chart.js frontend.
 
-> **Deployment status:** This code is in [PR #10](https://github.com/Rousan21/cleveland-ems-analytics/pull/10) and has not been merged into `main`. The earlier `ingest.py` and `legacy_virginia_beach_api.py` represent an archived **Virginia Beach prototype**, not the current Cleveland data source. Do not use those for a Cleveland import.
+> **Deployment status:** [PR #10](https://github.com/Rousan21/cleveland-ems-analytics/pull/10) has been merged into `main`; the production Cloudflare Pages deployment completed successfully. The earlier `ingest.py` and `legacy_virginia_beach_api.py` represent an archived **Virginia Beach prototype**, not the current Cleveland data source. Do not use those for a Cleveland import.
 
 ## Local setup
 
@@ -76,4 +76,4 @@ Only minimal analytic fields are stored in `cleveland_ems_records`; `cleveland_e
 
 `pytest -q` covers source-city and schema guards, idempotency, APIs, privacy thresholding, geographic joins, aggregate filters and snapshot assets. GitHub Actions runs additional source and polygon checks and a headless desktop/mobile Chrome review of the deployed preview, including the map, the call-type selector and daily trend endpoints.
 
-Cloudflare Pages serves only snapshots and frontend files. The database URI and Cloudflare deployment credentials are stored in GitHub Actions secrets, not in the codebase. Static preview deployments remain separate from production until the PR is merged.
+Cloudflare Pages serves only snapshots and frontend files. The database URI and Cloudflare deployment credentials are stored in GitHub Actions secrets, not in the codebase. Pull-request previews deploy separately from production; merges to `main` trigger the production Cloudflare Pages deployment.
