@@ -115,6 +115,15 @@ def build_site(output: Path):
             write_json(output / "api" / "summary" / window / f"{priority}.json", stats)
             areas = area_summary(window=window, priority=priority, now=now,
                                  known_neighborhoods=boundary_names)
+            # A map layer must describe the exact same selection as its
+            # citywide summary; never silently ship a denominator mismatch.
+            if (areas.get("eligible_records") != stats["records"] or
+                    areas.get("mapped_records", 0) +
+                    areas.get("unmapped_records", 0) != stats["records"]):
+                raise RuntimeError(
+                    f"Cleveland geography and citywide totals disagree: "
+                    f"window={window}, priority={priority}"
+                )
             if window == "30d" and priority == "all":
                 coverage = areas.get("mapping_coverage_pct")
                 print(
