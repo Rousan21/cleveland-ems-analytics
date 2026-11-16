@@ -70,35 +70,44 @@ function hourLabel(hour) {
 // not distinct emergencies, forecasts or verified official response-time metrics.
 
 function renderInsights(data) {
-  const count = Number(data.records || 0);
-  const peak = (data.hours || []).filter(v => Number(v.count) > 0)
-    .sort((a,b) => b.count - a.count || a.hour - b.hour)[0];
-  $('insight-hour').textContent = peak ? hourLabel(Number(peak.hour)) : 'No records';
-  $('insight-hour-detail').textContent = peak
-    ? `${number(peak.count)} published Cleveland EMS rows (${percent(peak.count,count)}) have an incident date during this hour.`
-    : 'No Cleveland source records for this selection.';
-
-  if (data.priority !== 'all') {
-    $('insight-priority-title').textContent = 'Priority filter';
-    $('insight-priority').textContent = `Priority ${data.priority}`;
-    $('insight-priority-detail').textContent =
-      'Showing only this Cleveland source priority code. Select All priorities to compare categories.';
+  // Source-backed narrative rather than repeating the same three KPIs.
+  const total = Number(data.records || 0);
+  const leading = (data.incident_types || []).find(v => v && Number(v.count) > 0);
+  if (!total || !leading) {
+    $('insight-category').textContent = 'No reportable classification';
+    $('insight-category-detail').textContent =
+      'Try a longer window or All priorities. No category conclusion is supported by this selection.';
+  } else if (leading.type === 'Uncoded' || !leading.type) {
+    $('insight-category').textContent = 'Classification missing';
+    $('insight-category-detail').textContent =
+      `${number(leading.count)} of ${number(total)} selected records have no recorded incident type. The leading recorded classification cannot be reliably described from these labels alone.`;
   } else {
-    $('insight-priority-title').textContent = 'Most common source priority';
-    const top = (data.priorities || []).filter(v => Number(v.count) > 0)
-      .sort((a,b) => b.count - a.count)[0];
-    $('insight-priority').textContent = top
-      ? (top.priority === 'Unknown' ? 'Uncoded' : `Priority ${top.priority}`) : 'No records';
-    $('insight-priority-detail').textContent = top
-      ? `${number(top.count)} rows (${percent(top.count,count)}) use this Cleveland CAD priority code; no clinical severity meaning is inferred.`
-      : 'No priority distribution for this selection.';
+    $('insight-category').textContent = leading.type;
+    $('insight-category-detail').textContent =
+      `${number(leading.count)} of ${number(total)} selected published rows (${percent(leading.count,total)}) carry this dispatch-time classification. This describes recorded call types, not diagnoses or patients.`;
   }
 
-  const type = (data.incident_types || [])[0];
-  $('insight-quality').textContent = type?.type || 'Not available';
-  $('insight-quality-detail').textContent = type
-    ? `${number(type.count)} rows (${percent(type.count,count)}) use this published incident type. This is a source classification, not a diagnosis.`
-    : 'No source incident-type classification in this selection.';
+  const quality = data.record_quality || {};
+  function reportQuality(value, resultId, detailId, denominatorText) {
+    const count = Number(value);
+    const valid = value !== undefined && value !== null && Number.isFinite(count) &&
+      Number.isInteger(count) && count >= 0 && count <= total && total > 0;
+    $(resultId).textContent = valid ? percent(count,total) : 'N/A';
+    $(detailId).textContent = valid
+      ? `${number(count)} of ${number(total)} selected records ${denominatorText}.`
+      : 'Insufficient or unavailable field-quality information.';
+  }
+  reportQuality(quality.incident_type_coded_count,
+    'quality-types','quality-types-detail','have a recorded incident classification');
+  reportQuality(data.transport_flag_known,
+    'quality-transport','quality-transport-detail','have a known transport indicator');
+  $('quality-snapshot').textContent = data.snapshot_generated_at
+    ? `Snapshot built ${dateString(data.snapshot_generated_at)}`
+    : 'Snapshot time not recorded';
+  $('quality-explanation').textContent =
+    'These are measured field availability and GIS matching for the selected records. ' +
+    'They do not prove that the City has published every incident. Recent dates may be revised; ' +
+    'partial boundary dates remain in totals but are excluded from comparable-day trends.';
 }
 
 
