@@ -130,30 +130,37 @@
         <div class="geo-footnote" role="note">Neighborhood labels come from Cleveland CAD records; polygons come from Cleveland GIS. Unmatched records are excluded from mapped counts. Areas with fewer than 11 records are suppressed. Higher raw volume does not imply higher per-capita risk.</div>
       </section>
       <section id="insights" class="insights-section" aria-labelledby="insights-title">
-        <div class="section-heading"><div>
-          <div class="overline">A CLOSER LOOK</div>
-          <h2 id="insights-title">Observations, not just numbers</h2>
-          <p>Highlights calculated from the selected published records, not estimates of unique emergencies.</p>
-        </div><span class="section-index">02 — INSIGHTS</span></div>
-        <div class="insights-grid" aria-live="polite">
-          <article class="insight-card insight-teal">
-            <div class="insight-top"><span class="insight-icon" aria-hidden="true">◷</span><span class="insight-label">Busiest recorded incident hour</span></div>
-            <div class="insight-value" id="insight-hour">—</div>
-            <p class="insight-detail" id="insight-hour-detail">Analyzing hourly distribution…</p>
-            <div class="insight-bottom">BASED ON CLEVELAND INCIDENT DATES</div>
+        <div class="section-heading">
+          <div><div class="overline">02 / FINDINGS & DATA CONFIDENCE</div>
+            <h2 id="insights-title">What the records actually reveal</h2>
+            <p>Evidence-led observations from your current filters, with the limitations needed to interpret them.</p>
+          </div><span class="section-index">DESCRIPTIVE · NOT PREDICTIVE</span>
+        </div>
+        <div class="interpretation-grid" aria-live="polite">
+          <article class="interpretation-card">
+            <div class="overline">MOST FREQUENT RECORDED SITUATION · CITYWIDE</div>
+            <h3 id="insight-category">Reviewing incident classifications…</h3>
+            <p id="insight-category-detail">Checking the recorded types and their share of the selected published rows.</p>
+            <span class="interpretation-caveat">Dispatch-time labels are not confirmed diagnoses.</span>
           </article>
-          <article class="insight-card insight-blue">
-            <div class="insight-top"><span class="insight-icon" aria-hidden="true">◈</span><span class="insight-label" id="insight-priority-title">Most common priority</span></div>
-            <div class="insight-value" id="insight-priority">—</div>
-            <p class="insight-detail" id="insight-priority-detail">Reviewing priority codes…</p>
-            <div class="insight-bottom">SOURCE PRIORITY CODES · NOT SEVERITY CLAIMS</div>
+          <article class="interpretation-card">
+            <div class="overline">LARGEST MAPPED NEIGHBORHOOD COUNT</div>
+            <h3 id="insight-area">Checking neighborhood coverage…</h3>
+            <p id="insight-area-detail">Matching Cleveland CAD neighborhood labels to the official GIS boundaries.</p>
+            <span class="interpretation-caveat">Counts are not adjusted for population or visitors.</span>
           </article>
-          <article class="insight-card insight-violet">
-            <div class="insight-top"><span class="insight-icon" aria-hidden="true">✓</span><span class="insight-label">Most common incident type · Citywide</span></div>
-            <div class="insight-value" id="insight-quality">—</div>
-            <p class="insight-detail" id="insight-quality-detail">Analyzing Cleveland incident categories…</p>
-            <div class="insight-bottom">SOURCE INCIDENT TYPE · NOT A MEDICAL DIAGNOSIS</div>
-          </article>
+        </div>
+        <div class="quality-panel" role="region" aria-label="Data quality for the selected filters">
+          <div class="quality-header">
+            <div><div class="overline">EVIDENCE CHECK</div><h3>How much of this view can we interpret?</h3></div>
+            <span class="quality-snapshot" id="quality-snapshot">Checking snapshot…</span>
+          </div>
+          <div class="quality-metrics" aria-live="polite">
+            <div><span>Incident types recorded</span><strong id="quality-types">—</strong><small id="quality-types-detail">Known classifications / selected records</small></div>
+            <div><span>GIS neighborhood match</span><strong id="quality-geo">—</strong><small id="quality-geo-detail">Matched records / selected records</small></div>
+            <div><span>Transport field known</span><strong id="quality-transport">—</strong><small id="quality-transport-detail">Known yes/no flags / selected records</small></div>
+          </div>
+          <p class="quality-explanation" id="quality-explanation">Waiting for the source completeness and geographic aggregates. This dashboard does not certify official data completeness.</p>
         </div>
       </section>
       <section id="call-types" class="panel reasons-panel" aria-labelledby="call-types-title">
