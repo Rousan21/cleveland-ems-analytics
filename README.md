@@ -18,7 +18,7 @@ I built Cleveland EMS Analytics as a practical, end-to-end data project: from pu
 
 | Question | What the dashboard shows |
 | --- | --- |
-| **Where is published activity concentrated?** | Cleveland neighborhood choropleth, top-ten list, selected area counts, geographic match coverage and privacy-aware category insight |
+| **Where is published activity concentrated?** | Cleveland neighborhood choropleth, top-ten list, selected area counts and leading reportable incident category |
 | **What kinds of calls appear most often?** | Top-eight recorded **dispatch classifications**, shown as readable horizontal bars with counts and shares of all selected records |
 | **When are calls recorded?** | A complete-local-day trend and hour-of-day distribution |
 | **Are patients transported or units dispatched?** | Source-based transport and dispatch indicator percentages calculated only among known values |
@@ -29,6 +29,23 @@ I built Cleveland EMS Analytics as a practical, end-to-end data project: from pu
 ![Top dispatch classifications and their shares of Cleveland EMS records](assets/incident-types.png)
 
 *The citywide incident-type chart appears with All incident types. Selecting one of the ten most frequent source classifications filters the map, daily trend and metrics together. Selecting a neighborhood instead updates the map's geographic detail, not the citywide charts. Labels reflect dispatch-time classifications, **not medical diagnoses**.*
+
+## Example finding: dispatch classifications and time of day
+
+To demonstrate an analytical question beyond a dashboard screenshot, I queried **29 complete Cleveland-local days (October 17–November 14, 2026)** and examined the `OVERDOSE / POISONING (INGESTION)` **dispatch classification**. The question was whether its share of all published EMS records varied across the day.
+
+| Cleveland-local incident time | Records classified overdose/poisoning | All published EMS rows | Share of rows |
+| --- | ---: | ---: | ---: |
+| 6:00–11:59 a.m. | 40 | 2,317 | 1.7% |
+| 6:00–11:59 p.m. | 93 | 2,614 | 3.6% |
+
+**Observation:** The evening share was approximately twice the morning share (3.6% vs. 1.7%) in this 29-day snapshot. Across the full day, **260 of 9,560** published rows had this classification.
+
+**Why it matters:** This suggests a focused research question: *Does this difference persist across longer periods, weekdays versus weekends, and seasons?* A public-health analyst could investigate further before proposing any intervention.
+
+**Limits:** This is the *dispatch-time label*, not a confirmed medical diagnosis, unique-patient count or direct measure of overdose incidence. The selected period is short; reporting practices and other factors may affect the pattern. It is **not** evidence of a cause or a basis for staffing changes.
+
+The website remains focused on **where, what, and when**. This worked example belongs in the case study, not as another public-facing chart.
 
 ## Source, integrity and definitions
 
@@ -80,7 +97,7 @@ Static builds precompute **66 date/incident selections** to avoid repeated datab
 
 **Removing misleading trends.** Partial first/current days created apparent dramatic declines in a rolling 30-day graph. The dashboard now plots comparable complete Cleveland-local dates while disclosing excluded dates and preserving full-period totals.
 
-**Making the map robust.** The interface uses verified neighborhood labels and polygons, displays match coverage, suppresses small-area cells, and is tested in a real browser. Serving Leaflet styles locally also resolved a real CSS/CDN issue that distorted the map.
+**Making the map robust.** The interface uses verified neighborhood labels and polygons, keeps GIS matching available as a small source note, suppresses small-area cells, and is tested in a real browser. Serving Leaflet styles locally also resolved a real CSS/CDN issue that distorted the map.
 
 **Choosing useful metrics.** Unsupported legacy response-time medians and a lower-value priority doughnut were removed. The interface now prioritizes **where, what, and when**, including the leading source incident classifications.
 

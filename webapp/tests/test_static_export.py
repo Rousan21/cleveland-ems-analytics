@@ -64,7 +64,8 @@ def test_static_build_contains_only_cleveland_source_and_aggregate_geography(tmp
     assert 'data-static-site="true"' in html
     assert 'Adam Al-Rousan' in html
     assert 'id="neighborhood-select"' in html
-    assert 'id="geo-mapped-count"' in html
+    assert 'id="geo-match-note"' in html
+    assert 'id="geo-mapped-count"' not in html
     assert 'id="transport-share"' in html
     assert 'id="reason-rankings"' in html
     assert 'id="reason-coverage"' in html

@@ -108,10 +108,6 @@
             <div class="geo-statline"><span class="overline">GEOGRAPHIC CONTEXT</span><span class="geo-status-tag" id="geo-data-status">MATCHING GIS…</span></div>
             <h3 id="selected-neighborhood-name">Explore an area</h3>
             <p id="selected-neighborhood-copy">Select a neighborhood to inspect its aggregate volume, share of mapped records, and rank for the current filters.</p>
-            <div class="geo-mini-stats">
-              <div><span>Top neighborhood volume</span><strong id="top-area-count">—</strong></div>
-              <div><span>Neighborhood match coverage</span><strong id="geo-mapped-count">—</strong></div>
-            </div>
             <div class="geo-local-insight" aria-live="polite">
               <div class="overline" id="area-type-heading">NEIGHBORHOOD INCIDENT TYPES</div>
               <strong id="area-type-value">Choose a neighborhood</strong>
@@ -122,10 +118,9 @@
             <ol class="area-ranking" id="area-ranking" aria-label="Ranked Cleveland neighborhoods by published EMS record count"><li class="area-empty">No validated area assignments yet.</li></ol>
             <p id="map-explainer" class="geo-note">Loading Cleveland neighborhood aggregates…</p>
             <div id="map-legend" class="map-legend" hidden><span>Lower verified count</span><div class="legend-ramp"></div><span>Higher</span></div>
-            <div class="geo-next-step"><span class="geo-next-icon">↗</span><span id="geo-next-copy">These are raw published record counts—not population-adjusted illness rates or ambulance deployment recommendations.</span></div>
           </aside>
         </div>
-        <div class="geo-footnote" role="note">Neighborhood labels come from Cleveland CAD records; polygons come from Cleveland GIS. Unmatched records are excluded from mapped counts. Areas with fewer than 11 records are suppressed. Higher raw volume does not imply higher per-capita risk.</div>
+        <div class="geo-footnote" role="note">Neighborhood counts reflect published EMS rows, not population-adjusted risk. Small cells (fewer than 11 rows) are suppressed. <span id="geo-match-note" class="geo-source-note" title="Source-provided neighborhood labels must match Cleveland's official GIS polygons. Unmatched records are excluded from mapped counts.">Checking geographic matching…</span></div>
       </section>
       <section id="call-types" class="panel reasons-panel" aria-labelledby="call-types-title">
         <div class="panel-header">

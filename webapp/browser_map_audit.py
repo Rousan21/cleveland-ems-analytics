@@ -75,6 +75,10 @@ def diagnose(url, save_to):
                 raise AssertionError(f"{label}: Cleveland polygons missing or tiny: {result}")
             if result.get("loadedTiles",0)>0:
                 raise AssertionError(f"{label}: third-party map tiles returned; avoid API-key watermarks")
+            if page.locator('#geo-mapped-count').count()!=0:
+                raise AssertionError(f"{label}: GIS match is still a prominent metric")
+            if 'GIS name matching:' not in page.locator('#geo-match-note').inner_text():
+                raise AssertionError(f"{label}: geographic source note did not render")
             if result.get("rankButtons",0)<5 or result.get("rankListHeight",0)<180:
                 raise AssertionError(f"{label}: neighborhood rankings collapsed or missing: {result}")
             if errors:

@@ -195,3 +195,7 @@
 .reason-scope{font-size:10px;margin-top:5px}
 .priority-select select#incident-type{max-width:360px;width:min(360px,56vw);min-width:195px}
 .priority-select{align-items:center}
+
+/* GIS-methodology information stays accessible but outside the primary metrics. */
+.geo-source-note {display:inline;color:#7d9eae;font-size:10px;font-weight:500;white-space:normal;margin-left:5px}
+.geo-footnote{font-size:10px;line-height:1.75}

@@ -49,9 +49,6 @@
       description.textContent = areas.length
         ? `Select a neighborhood on the map, use the dropdown, or click a ranked area. The map contains ${fmt(matched)} Cleveland EMS rows matched to official neighborhood boundaries for your filters.`
         : 'Loading neighborhood aggregates from official Cleveland CAD records.';
-      $('geo-next-copy').textContent = areas.length
-        ? 'Shading compares published EMS record counts, not population-adjusted medical risk. Lower counts may reflect different populations or incomplete records.'
-        : 'Only source-provided and GIS-matched neighborhood labels are eligible for shading.';
       return;
     }
     if (row) {
@@ -59,12 +56,9 @@
       const share = matched > 0 ? (row.count / matched * 100).toFixed(1) : '0';
       description.textContent =
         `${fmt(row.count)} published Cleveland EMS rows in this neighborhood for the selected filters · #${rank} of ${areas.length} reportable areas · ${share}% of GIS-matched records.`;
-      $('geo-next-copy').textContent =
-        'This is raw published record volume, not a per-resident rate, distinct patients, disease prevalence, or evidence of required ambulance staffing.';
     } else {
       description.textContent = 'No reportable volume is shown for this area under the selected filters. It may have fewer than 11 rows, an unmatched source label, or no eligible records.';
-      $('geo-next-copy').textContent =
-        'Gray means unavailable or suppressed, not zero emergencies. Try a longer date range or All priorities.';
+
     }
   }
 
@@ -147,8 +141,9 @@
   function renderGeoStats(result) {
     const rows = result?.areas || [];
     const coverage = result?.mapping_coverage_pct;
-    $('geo-mapped-count').textContent = typeof coverage === 'number' ? `${coverage.toFixed(1)}%` : '—';
-    $('top-area-count').textContent = rows.length ? fmt(rows[0].count) : '—';
+    $('geo-match-note').textContent = typeof coverage === 'number'
+      ? `GIS name matching: ${coverage.toFixed(1)}% of selected rows.`
+      : 'GIS name matching unavailable.';
     $('area-ranking-title').textContent = 'Highest published EMS record counts';
     $('area-ranking-badge').textContent = rows.length ? 'CLEVELAND CAD' : 'NO REPORTABLE AREAS';
     $('geo-data-status').textContent = rows.length ? 'SOURCE-VERIFIED' : 'NO AREA COUNTS';
@@ -167,7 +162,7 @@
       const max = rows[0].count;
       for(const row of rows.slice(0,10)) list.append(rankingButton(row,max));
       $('map-explainer').textContent =
-        `${rows.length} Cleveland neighborhoods have reportable counts (minimum 11). ${fmt(result.mapped_records)} of ${fmt(result.eligible_records)} published records match this official boundary set; the top 10 are shown.`;
+        `Top 10 of ${rows.length} reportable Cleveland neighborhoods. Select a row to explore its published record count.`;
     }
     showSelectedDetails();
     highlightSelected();
