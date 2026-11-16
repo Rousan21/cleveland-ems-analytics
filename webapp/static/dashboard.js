@@ -167,9 +167,9 @@ function renderSummary(data) {
   $('total-calls').textContent = number(data.records);
   const rate = (part, valid) => valid > 0 ? percent(part, valid) : 'N/A';
   $('dispatch-share').textContent = rate(data.dispatched_count, data.dispatch_flag_known);
-  $('dispatch-meta').textContent = `${number(data.dispatched_count)} of ${number(data.dispatch_flag_known)} rows with a known dispatch flag`;
+  $('dispatch-meta').textContent = `${number(data.dispatched_count)} of ${number(data.dispatch_flag_known)} rows indicate ≥1 unit dispatched`;
   $('transport-share').textContent = rate(data.transported_count, data.transport_flag_known);
-  $('transport-meta').textContent = `${number(data.transported_count)} of ${number(data.transport_flag_known)} rows marked yes/no; not verified unique patients`;
+  $('transport-meta').textContent = `${number(data.transported_count)} of ${number(data.transport_flag_known)} rows indicate patient transport; not unique patients`;
   $('areas-reported').textContent = number(data.neighborhoods_in_source);
 
   $('sync-indicator').textContent = data.last_successful_sync

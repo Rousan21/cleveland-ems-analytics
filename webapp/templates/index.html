@@ -81,8 +81,8 @@
       </section>
       <section class="kpi-grid" aria-label="Cleveland EMS summary metrics">
         <article class="kpi"><div class="kpi-label">Published EMS records <span>↗</span></div><div class="kpi-value" id="total-calls">—</div><div class="kpi-meta">Cleveland, Ohio · selected date window</div></article>
-        <article class="kpi"><div class="kpi-label">Dispatch flagged <span>◷</span></div><div class="kpi-value" id="dispatch-share">—</div><div class="kpi-meta" id="dispatch-meta">Of records with a known dispatch flag</div></article>
-        <article class="kpi"><div class="kpi-label">Transport marked <span title="Cleveland CAD isTransport=true. Does not confirm hospital admission, a unique patient, or transport time." aria-label="Transport source flag explanation">ⓘ</span></div><div class="kpi-value" id="transport-share">—</div><div class="kpi-meta" id="transport-meta">Of records with a known yes/no transport flag</div></article>
+        <article class="kpi"><div class="kpi-label">Unit dispatch reported <span title="City of Cleveland isDispatch=true means one or more EMS units were dispatched for the incident, not the number of units.">ⓘ</span></div><div class="kpi-value" id="dispatch-share">—</div><div class="kpi-meta" id="dispatch-meta">Of records with a known dispatch flag</div></article>
+        <article class="kpi"><div class="kpi-label">Patient transport reported <span title="Cleveland CAD isTransport=true means the incident resulted in transporting a patient. It does not establish hospital admission, destination, transport time or the number of unique people.">ⓘ</span></div><div class="kpi-value" id="transport-share">—</div><div class="kpi-meta" id="transport-meta">Of records with a known patient-transport indicator</div></article>
         <article class="kpi kpi-dark"><div class="kpi-label">Neighborhoods reported <span>⬡</span></div><div class="kpi-value" id="areas-reported">—</div><div class="kpi-meta">Distinct source neighborhood labels in selection</div></article>
       </section>
       <section id="geography" class="geo-section" aria-labelledby="geo-title">
@@ -189,7 +189,7 @@
       </section>
       <section id="methodology" class="methodology-strip">
         <div><div class="overline">HOW TO INTERPRET THIS DASHBOARD</div><h2>Good decisions start with good definitions.</h2></div>
-        <p>Counts describe published Cleveland CAD rows, not independently confirmed unique emergencies. Incident-type labels describe the dispatcher's classification, not a confirmed medical diagnosis. Neighborhood labels are matched to official boundaries. <strong>Transport marked</strong> means that <code>isTransport</code> is true in the source CAD row; it does not independently verify unique patients, hospital admission, destination, or transport duration. Dispatch and transport fields are indicators, not response-time measurements.</p>
+        <p>Counts describe published Cleveland CAD rows, not independently confirmed unique emergencies. Incident-type labels describe the dispatcher's classification, not a confirmed medical diagnosis. Neighborhood labels are matched to official boundaries. The City defines <strong><code>isTransport=true</code></strong> as an incident resulting in transporting a patient, and <code>isDispatch=true</code> as one or more units dispatched. These are row-level indicators, not independently verified numbers of unique patients, hospital admissions, dispatch units, or response times.</p>
         <a href="https://github.com/Rousan21/cleveland-ems-analytics" target="_blank" rel="noopener noreferrer">Explore the methodology ↗</a>
       </section>
       <footer class="site-footer">

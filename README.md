@@ -13,7 +13,7 @@ Public EMS data can answer useful questions—but only if data provenance, geogr
 - **Which Cleveland neighborhoods have higher published EMS record counts?** An interactive choropleth shades Cleveland neighborhoods using the source-provided neighborhood field. A ranked list and details panel show count, rank, share and data-matching coverage.
 - **When does activity occur?** Compare published rows by day and Cleveland-local incident hour for six preset time windows.
 - **What types of EMS situations appear most often?** Explore a ranked horizontal chart of the eight most frequent recorded dispatch categories, each with its share of the selected Cleveland rows. Filter by period and source priority code (1–7).
-- **How often are records marked dispatched or transported?** Compute proportions **only among rows with an explicit known flag**; a transport mark is not proof of a distinct patient transported, the destination, or a hospital admission.
+- **How often are records marked dispatched or transported?** Compute proportions **only among rows with an explicit known flag**; Cleveland defines isTransport=true as an incident resulting in patient transport, but the field alone does not establish a unique patient count, destination or hospital admission.
 
 These are **descriptive, exploratory metrics**, not official ambulance performance statistics or emergency-deployment recommendations.
 
@@ -101,7 +101,7 @@ The source-check diagnostic can be run manually with `python audit_cleveland_sou
 
 - **Published records are not independently verified unique emergency incidents.** One incident may generate multiple rows; do not report the count as patients or ambulance deployments.
 - **Priority codes 1–7** are reproduced from the source. Their clinical meanings are not guessed.
-- **Dispatch/transport flags** indicate CAD source classifications. The `isTransport=true` record mark is not independently verified as a unique patient transport or hospital admission. The Cleveland feed does **not** include the call-to-dispatch and on-scene timestamps used in the archived prototype; v6 removes those elapsed-time metrics.
+- **Dispatch/transport flags** indicate CAD source classifications. The City's published field glossary defines `isTransport=true` as an incident resulting in patient transport and `isDispatch=true` as one or more units dispatched. They are record-level indicators, not unique patient counts or hospital admissions. The Cleveland feed does **not** include the call-to-dispatch and on-scene timestamps used in the archived prototype; v6 removes those elapsed-time metrics.
 - **Incident-type bar chart** shows the eight highest-frequency dispatch classifications with exact shares of all selected citywide rows; these are not confirmed medical diagnoses. The priority donut was removed because 6–7 have undocumented meanings.
 - **Geographic rankings** include only records whose source neighborhoods match the known GIS boundary labels. Coverage is shown so visitors can judge how representative a ranking is.
 - **Recent-day counts** may be incomplete or revised later. The site does not claim a specific reporting lag without measurement.
