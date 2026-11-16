@@ -53,7 +53,7 @@ python audit_map_geometry.py
 | `IncidentDate`, `city` | Cleveland-local timing and strict jurisdiction validation |
 | `neighborhood`, `census_tract` | Geographic context; exact-name matching to Cleveland GIS neighborhood polygons |
 | `CurrentPriorityKey` | Preserved source codes for internal provenance and testing; not a public dashboard filter |
-| `IncidentTypeDescription` | Dispatch-time category; not a verified medical diagnosis |
+| `IncidentTypeDescription` | Dispatch-time category; not a confirmed medical diagnosis. “NO DISPATCH” and uncoded labels are excluded from reason rankings and dropdown, not source totals |
 | `isDispatch` | City definition: one or more units dispatched when true |
 | `isTransport` | City definition: the incident resulted in patient transport when true |
 
@@ -62,7 +62,7 @@ Only minimal analytic fields are stored in `cleveland_ems_records`; `cleveland_e
 ## Aggregation and privacy
 
 - Six time windows × (All types plus ten common source-based incident types) generate **66 precomputed** combinations of citywide counts and area summaries.
-- “All incident types” displays the top-eight classification chart. The separate dropdown offers the ten most frequent recorded source types, each of which filters citywide metrics, the map, and daily/hourly trends; categories beyond the top eight remain part of the All-types chart denominator.
+- “All incident types” shows the top-eight reportable incident-reason chart. Percentages use the records with meaningful reason classifications as the denominator. “NO DISPATCH” and uncoded records are not ranked or selectable, but still contribute to citywide totals and transport flags. The ten most common usable reason types filter the map and charts.
 - The map uses `neighborhood` labels that match official boundaries; unmatched records are excluded from mapped totals, and the site reports matching coverage.
 - Area and neighborhood-category counts under **11** are not exposed as individual cells.
 - The daily trend uses complete `America/New_York` calendar days when comparing days; incomplete rolling-window boundary dates remain in KPIs and daily CSV.
@@ -70,7 +70,7 @@ Only minimal analytic fields are stored in `cleveland_ems_records`; `cleveland_e
 - The GIS match percentage is calculated separately from the area summary, as `mapped_records / eligible_records`; geographic findings are restricted to the matched subset.
 - Export validation refuses a build when `daily`, `hours` or `priorities` sums disagree with `records`, when top category totals or quality counts exceed their denominators, or when geographic mapped and unmapped counts do not reconcile with citywide totals.
 - Source records are **not** independently verified unique emergency incidents. No patient addresses, incident IDs, or individual call coordinates reach the frontend.
-- Transport and dispatch indicators do not independently measure the number of patients, units, hospital admissions, or emergency response time.
+- Patient transport is a source indicator, not a unique-patient count, hospital admission or ambulance response time. The dispatch flag remains available internally but is not a public KPI.
 
 ## Validation
 

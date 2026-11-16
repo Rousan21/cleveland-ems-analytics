@@ -21,6 +21,8 @@ def test_static_build_contains_only_cleveland_source_and_aggregate_geography(tmp
             "incident_types":[{"type":"Medical","count":16}],
             "incident_type_category_count":1,"incident_type_other_count":0,
             "incident_type_uncoded_count":0,
+            "incident_reason_records":16,
+            "incident_type_excluded_count":0,
             "record_quality":{
                 "incident_type_coded_count":16,
                 "incident_type_uncoded_count":0,
@@ -67,6 +69,9 @@ def test_static_build_contains_only_cleveland_source_and_aggregate_geography(tmp
     assert 'id="geo-match-note"' in html
     assert 'id="geo-mapped-count"' not in html
     assert 'id="transport-share"' in html
+    assert 'id="dispatch-share"' not in html
+    assert 'id="areas-reported"' not in html
+    assert 'id="no-dispatch-explain"' not in html
     assert 'id="reason-rankings"' in html
     assert 'id="reason-coverage"' in html
     assert 'id="incident-type"' in html
@@ -138,7 +143,9 @@ def test_export_rejects_inconsistent_counts(changed_field):
         "daily":[{"count":12}],
         "hours":[{"count":12}],
         "priorities":[{"count":12}],
-        "incident_types":[{"count":12}],
+        "incident_types":[{"type":"Medical","count":12}],
+        "incident_reason_records":12,
+        "incident_type_excluded_count":0,
         "record_quality":{"incident_type_coded_count":12,
                           "neighborhood_labeled_count":12},
         "transport_flag_known":12,
@@ -152,4 +159,29 @@ def test_export_rejects_inconsistent_counts(changed_field):
     else:
         data[changed_field][0]["count"] = 13
     with pytest.raises(RuntimeError,match="totals disagree|quality count"):
+        export_static.validate_aggregate(data)
+
+
+def test_export_rejects_ambiguous_reason_and_inconsistent_reason_denominator():
+    import export_static
+    data={
+        "source_item_id":export_static.SOURCE_ITEM_ID,
+        "records":30,
+        "daily":[{"count":30}],
+        "hours":[{"count":30}],
+        "priorities":[{"count":30}],
+        "incident_types":[{"type":"SICK PERSON","count":18}],
+        "incident_reason_records":18,
+        "incident_type_excluded_count":12,
+        "record_quality":{"incident_type_coded_count":30},
+        "transport_flag_known":30,
+        "dispatch_flag_known":30,
+    }
+    assert export_static.validate_aggregate(data)
+    data["incident_types"][0]["type"]="NO DISPATCH"
+    with pytest.raises(RuntimeError,match="incident-type aggregate"):
+        export_static.validate_aggregate(data)
+    data["incident_types"][0]["type"]="SICK PERSON"
+    data["incident_type_excluded_count"]=5
+    with pytest.raises(RuntimeError,match="reason denominator mismatch"):
         export_static.validate_aggregate(data)

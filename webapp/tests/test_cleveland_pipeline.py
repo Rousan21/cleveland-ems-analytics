@@ -262,3 +262,31 @@ def test_incident_type_filter_changes_citywide_and_neighborhood_totals():
     assert [r["name"] for r in geographic["areas"]]==["Ohio City"]
     with pytest.raises(ValueError,match="Unknown Cleveland incident"):
         summarize(window="7d",incident_type="not_an_official_category")
+
+
+def test_no_dispatch_is_not_an_incident_reason_but_remains_in_all_records():
+    from cleveland_pipeline import common_incident_types
+    now=datetime.now(timezone.utc)-timedelta(hours=3)
+    with SessionLocal() as db:
+        db.add_all([
+            ClevelandRecord(
+                object_id=i,incident_time=now,neighborhood="Ohio City",
+                priority="2",incident_type=("SICK PERSON" if i<=25 else
+                                            "NO DISPATCH" if i<=40 else None),
+                dispatch_flag="true" if i<=25 else "false",
+                transport_flag="true" if i<=25 else "false"
+            ) for i in range(1,46)
+        ])
+        db.commit()
+    options=common_incident_types()
+    assert [item["label"] for item in options]==["SICK PERSON"]
+    summary=summarize(window="7d")
+    assert summary["records"]==45
+    assert summary["incident_reason_records"]==25
+    assert summary["incident_type_excluded_count"]==20
+    assert summary["incident_types"]==[{"type":"SICK PERSON","count":25}]
+    assert summary["incident_type_other_count"]==0
+    assert summary["transported_count"]==25
+    assert summary["transport_flag_known"]==45
+    with pytest.raises(ValueError, match="Unknown Cleveland incident"):
+        summarize(window="7d",incident_type="type_02")

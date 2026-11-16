@@ -163,26 +163,31 @@ def diagnose(url, save_to):
                     filtered["total"]>=original_count or filtered["mapTotal"]!=filtered["total"] or
                     not filtered["chartHidden"] or filtered["mapRankings"]<1):
                 raise AssertionError(f"{label}: incident filter did not update the whole dashboard: {filtered}")
-            # "NO DISPATCH" is an incident-type label, not a reliable
-            # claim that isDispatch=false. Explain only for that selection.
-            no_dispatch = selector.locator('option',has_text='NO DISPATCH')
-            if no_dispatch.count():
-                selector.select_option(label="NO DISPATCH")
-                page.wait_for_function(
-                    "() => state.currentData?.selected_incident_type === 'NO DISPATCH'",
-                    timeout=30000
-                )
-                note=page.locator('#no-dispatch-explain')
-                if not note.is_visible() or 'not proof' not in note.inner_text():
-                    raise AssertionError(f"{label}: NO DISPATCH caveat missing")
-                print("NO DISPATCH NOTE",label,"visible",flush=True)
+            if (selector.locator('option',has_text='NO DISPATCH').count() > 0 or
+                    page.locator('#no-dispatch-explain').count() > 0 or
+                    page.locator('#dispatch-share').count() > 0 or
+                    page.locator('#areas-reported').count() > 0):
+                raise AssertionError(f"{label}: ambiguous/no-value UI is still visible")
+            if page.locator('#reason-rankings').inner_text().upper().find('NO DISPATCH') >= 0:
+                raise AssertionError(f"{label}: administrative code appears in call reasons")
+            # Source rows still contribute to overall totals and transport
+            # denominators, even when administrative types are not ranked.
+            accounting=page.evaluate("""() => ({
+                records: state.currentData?.records,
+                reasons: state.currentData?.incident_reason_records,
+                excluded: state.currentData?.incident_type_excluded_count,
+                transportKnown: state.currentData?.transport_flag_known,
+            })""")
+            print("INCIDENT ACCOUNTING",label,json.dumps(accounting,sort_keys=True),flush=True)
+            if (accounting['records'] != accounting['reasons'] + accounting['excluded'] or
+                    accounting['excluded'] < 1 or
+                    accounting['transportKnown'] > accounting['records']):
+                raise AssertionError(f"{label}: incorrect source record accounting {accounting}")
             selector.select_option("all")
             page.wait_for_function(
                 "() => state.currentData?.incident_type === 'all' && state.areaData?.eligible_records === state.currentData?.records",
                 timeout=30000
             )
-            if page.locator('#no-dispatch-explain').is_visible():
-                raise AssertionError(f"{label}: NO DISPATCH caveat remained after clearing filter")
 
             if trend["source"] != "d5d71757cc73400d843c98bcb46e46b6" or trend["plottedCount"] < 3:
                 raise AssertionError(f"{label}: wrong source or no daily trend: {trend}")
