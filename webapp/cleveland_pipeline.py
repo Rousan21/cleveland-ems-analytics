@@ -401,7 +401,10 @@ def area_summary(*,window="30d",priority="all",incident_type="all",now=None,
         if label and label.casefold() in known:
             matched_name = known[label.casefold()]
             area_counts[matched_name] += 1
-            area_types[matched_name][row.incident_type or "Uncoded"] += 1
+            # Keep all source rows in geographic volume, but never
+            # present ambiguous administrative codes as incident reasons.
+            if is_incident_reason(row.incident_type):
+                area_types[matched_name][row.incident_type] += 1
         else:
             unassigned += 1
     mapped = sum(area_counts.values())
@@ -409,7 +412,8 @@ def area_summary(*,window="30d",priority="all",incident_type="all",now=None,
     for name, count in sorted(area_counts.items(), key=lambda v: (-v[1], v[0])):
         if count < 11:
             continue
-        top_name, top_count = area_types[name].most_common(1)[0]
+        leading = area_types[name].most_common(1)
+        top_name, top_count = leading[0] if leading else (None, 0)
         allowed.append({
             "name": name,
             "count": count,

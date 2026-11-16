@@ -123,7 +123,7 @@ function renderRecordedTypes(data) {
   }
   const rangeName = ({'24h':'past day','7d':'past 7 days','30d':'past 30 days','90d':'past 3 months','1y':'past year','all':'all imported dates'})[data.window]||data.window;
   $('reason-filter-scope').textContent =
-    `Citywide · ${rangeName}. “NO DISPATCH” and uncoded rows are excluded from reason rankings, but remain in total records. Selecting a neighborhood changes the map only.`;
+    `Citywide · ${rangeName}. Administrative or uncoded classifications are excluded from reasons, but included in overall records. Selecting a neighborhood changes the map only.`;
 }
 
 function renderSummary(data) {

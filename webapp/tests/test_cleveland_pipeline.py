@@ -290,3 +290,25 @@ def test_no_dispatch_is_not_an_incident_reason_but_remains_in_all_records():
     assert summary["transport_flag_known"]==45
     with pytest.raises(ValueError, match="Unknown Cleveland incident"):
         summarize(window="7d",incident_type="type_02")
+
+
+def test_neighborhood_incident_leader_ignores_administrative_no_dispatch():
+    now=datetime.now(timezone.utc)-timedelta(hours=3)
+    with SessionLocal() as db:
+        db.add_all([
+            ClevelandRecord(object_id=i,incident_time=now,neighborhood="Ohio City",
+                priority="2",
+                incident_type=("NO DISPATCH" if i<=25 else "FALLS" if i<=38 else None),
+                dispatch_flag="true", transport_flag="false")
+            for i in range(1,43)
+        ])
+        db.commit()
+    result=area_summary(window="7d",known_neighborhoods=["Ohio City"])
+    assert result["eligible_records"]==42
+    assert result["areas"]==[{"name":"Ohio City","count":42,
+                              "top_incident_type":"FALLS",
+                              "top_incident_type_count":13}]
+    summary=summarize(window="7d")
+    assert summary["records"]==42
+    assert summary["incident_reason_records"]==13
+    assert summary["incident_type_excluded_count"]==29
