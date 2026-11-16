@@ -12,8 +12,6 @@
 
 *The interactive geographic explorer: Cleveland neighborhoods shaded by published EMS record volume, with rankings and geographic match coverage.*
 
-> **Release status:** v6 is currently in [Pull Request #10](https://github.com/Rousan21/cleveland-ems-analytics/pull/10). It has passed automated and browser tests but **has not been merged into `main`**. The production URL may still display an older prototype that used an incorrect Virginia Beach source. Do not interpret earlier production statistics as Cleveland findings.
-
 ## Why this project exists
 
 Public emergency-services records can help answer **where activity is concentrated, which situations are commonly recorded, and when activity occurs**. But raw counts can easily mislead: the source city, geographic labels, publication timing, and record definitions all matter.
