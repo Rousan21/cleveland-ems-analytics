@@ -188,9 +188,11 @@ def sync_data(*, days=400, session=None, now=None, validate=True):
 
 
 def common_incident_types():
-    """Ten most frequent *source-recorded* incident types across imported dates.
+    """Ten most frequent meaningful source incident reasons across imported dates.
 
-    Short IDs are safe in static paths; the labels are never reclassified.
+    Omit ambiguous administrative/uncoded labels from the visitor's filter;
+    do not delete those records from selected-period totals or transport rates.
+    Short IDs keep the static URLs safe; original labels are not reclassified.
     """
     with SessionLocal() as db:
         rows = db.execute(
