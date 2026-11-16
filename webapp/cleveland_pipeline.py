@@ -258,6 +258,7 @@ def summarize(*, window="30d", priority="all", start_date=None, end_date=None, n
     priority_counts = Counter()
     type_counts = Counter()
     neighborhood_set = set()
+    neighborhood_labeled_count = 0
     records = 0
     dispatch_known = transport_known = dispatched = transported = 0
     for r in _query_rows(window=window,priority=priority,now=now,
@@ -270,6 +271,7 @@ def summarize(*, window="30d", priority="all", start_date=None, end_date=None, n
         type_counts[r.incident_type or "Uncoded"] += 1
         if r.neighborhood:
             neighborhood_set.add(r.neighborhood)
+            neighborhood_labeled_count += 1
         if r.dispatch_flag in ("true", "false"):
             dispatch_known += 1
             dispatched += int(r.dispatch_flag == "true")
@@ -300,6 +302,14 @@ def summarize(*, window="30d", priority="all", start_date=None, end_date=None, n
         "dispatched_count":dispatched,"dispatch_flag_known":dispatch_known,
         "transported_count":transported,"transport_flag_known":transport_known,
         "neighborhoods_in_source":len(neighborhood_set),
+        "record_quality":{
+            "incident_type_coded_count":records-type_counts.get("Uncoded",0),
+            "incident_type_uncoded_count":type_counts.get("Uncoded",0),
+            "priority_coded_count":records-priority_counts.get("Unknown",0),
+            "neighborhood_labeled_count":neighborhood_labeled_count,
+            "dispatch_flag_known_count":dispatch_known,
+            "transport_flag_known_count":transport_known,
+        },
         "daily":[{"date":d,"count":date_counts[d]} for d in sorted(date_counts)],
         "daily_chart":chart_days,
         "daily_chart_excluded":partial_days,
