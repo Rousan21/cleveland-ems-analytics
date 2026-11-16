@@ -180,14 +180,25 @@ def diagnose(url, save_to):
             })""")
             print("INCIDENT ACCOUNTING",label,json.dumps(accounting,sort_keys=True),flush=True)
             if (accounting['records'] != accounting['reasons'] + accounting['excluded'] or
-                    accounting['excluded'] < 1 or
                     accounting['transportKnown'] > accounting['records']):
-                raise AssertionError(f"{label}: incorrect source record accounting {accounting}")
+                raise AssertionError(f"{label}: incorrect filtered record accounting {accounting}")
             selector.select_option("all")
             page.wait_for_function(
                 "() => state.currentData?.incident_type === 'all' && state.areaData?.eligible_records === state.currentData?.records",
                 timeout=30000
             )
+            # Check that administrative rows remain counted when ALL types
+            # are selected; a single named medical category correctly has
+            # no administrative rows to exclude.
+            all_accounting=page.evaluate("""() => ({
+                records:state.currentData?.records,
+                reasons:state.currentData?.incident_reason_records,
+                excluded:state.currentData?.incident_type_excluded_count,
+            })""")
+            print("ALL-TYPE ACCOUNTING",label,json.dumps(all_accounting,sort_keys=True),flush=True)
+            if (all_accounting['excluded'] < 1 or
+                    all_accounting['records'] != all_accounting['reasons'] + all_accounting['excluded']):
+                raise AssertionError(f"{label}: administrative rows lost from all-type totals {all_accounting}")
 
             if trend["source"] != "d5d71757cc73400d843c98bcb46e46b6" or trend["plottedCount"] < 3:
                 raise AssertionError(f"{label}: wrong source or no daily trend: {trend}")
