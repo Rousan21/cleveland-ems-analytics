@@ -64,3 +64,31 @@ def test_new_api_neighborhood_counts_and_privacy(monkeypatch):
         assert summary["dispatched_count"]==16
         assert summary["transport_flag_known"]==16
         assert "ObjectId" not in str(result.json())
+
+
+def test_api_incident_type_selector_filters_cleveland_records(monkeypatch):
+    import main
+    now=datetime.now(timezone.utc)-timedelta(hours=1)
+    with SessionLocal() as db:
+        db.add_all([
+            ClevelandRecord(object_id=i,incident_time=now,neighborhood="Ohio City",
+                priority="2",incident_type="SICK PERSON" if i<=23 else "FALLS",
+                dispatch_flag="true",transport_flag="false")
+            for i in range(1,41)
+        ])
+        db.commit()
+    monkeypatch.setattr(main,"get_boundaries",lambda:{
+        "type":"FeatureCollection","features":[{"properties":{"name":"Ohio City"}}]})
+    with TestClient(app) as client:
+        choices=client.get("/api/incident-types").json()["types"]
+        assert {x["label"] for x in choices}=={"SICK PERSON","FALLS"}
+        selected=next(x["id"] for x in choices if x["label"]=="SICK PERSON")
+        data=client.get("/api/summary",params={"window":"7d","incident_type":selected})
+        assert data.status_code==200
+        assert data.json()["records"]==23
+        assert data.json()["selected_incident_type"]=="SICK PERSON"
+        area=client.get("/api/areas",params={"window":"7d","incident_type":selected})
+        assert area.status_code==200
+        assert area.json()["eligible_records"]==23
+        assert area.json()["areas"][0]["count"]==23
+        assert client.get("/api/summary?incident_type=bad").status_code==422

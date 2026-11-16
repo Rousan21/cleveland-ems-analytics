@@ -231,7 +231,7 @@ async function initializeIncidentTypes() {
     }
     select.replaceChildren(new Option('All incident types','all'));
     for (const entry of payload.types) {
-      if (!/^type_\\d{2}$/.test(entry.id) || typeof entry.label !== 'string') continue;
+      if (!/^type_[0-9]{2}$/.test(entry.id) || typeof entry.label !== 'string') continue;
       select.add(new Option(entry.label,entry.id));
     }
   } catch (error) {

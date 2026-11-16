@@ -107,25 +107,44 @@ def diagnose(url, save_to):
               removedWeakChart:!document.querySelector('#priority-chart')
             })""")
             print("INCIDENT TYPES",label,json.dumps(incidents,sort_keys=True),flush=True)
-            if incidents["rows"]<5 or not incidents["coverage"].endswith("%") or not incidents["removedWeakChart"] or "City of Cleveland" not in incidents["scope"]:
+            if incidents["rows"]<5 or not incidents["coverage"].endswith("%") or not incidents["removedWeakChart"] or "Citywide" not in incidents["scope"]:
                 raise AssertionError(f"{label}: incident type chart missing, unscoped or incorrectly laid out: {incidents}")
 
-            evidence=page.evaluate("""() => ({
-              category:document.querySelector('#insight-category')?.textContent||'',
-              area:document.querySelector('#insight-area')?.textContent||'',
-              type:document.querySelector('#quality-types')?.textContent||'',
-              geographic:document.querySelector('#quality-geo')?.textContent||'',
-              transport:document.querySelector('#quality-transport')?.textContent||'',
-              scope:document.querySelector('#quality-explanation')?.textContent||'',
-              renderedQuality:Boolean(state.currentData?.record_quality)
+            selector=page.locator("#incident-type")
+            options=selector.locator("option")
+            available=options.count()
+            print("FILTER OPTIONS",label,available,flush=True)
+            if available<5:
+                raise AssertionError(f"{label}: incident selector is missing source categories")
+            if page.locator("#priority").count()!=0 or page.locator("#quality-types").count()!=0 or page.locator("#brief-title").count()!=0:
+                raise AssertionError(f"{label}: removed priority/evidence/guidance clutter is still present")
+            original_count=page.evaluate("Number(state.currentData?.records||0)")
+            try:
+                selector.select_option(label="BREATHING PROBLEMS")
+            except Exception:
+                raise AssertionError(f"{label}: Breathing Problems category unavailable")
+            page.wait_for_function(
+                "() => state.currentData?.selected_incident_type === 'BREATHING PROBLEMS' && state.areaData?.eligible_records === state.currentData?.records",
+                timeout=30000
+            )
+            filtered=page.evaluate("""() => ({
+               total:Number(state.currentData?.records||0),
+               type:state.currentData?.selected_incident_type,
+               mapTotal:state.areaData?.eligible_records,
+               chartData:state.charts['volume-chart']?.data?.datasets?.[0]?.data?.reduce((a,b)=>a+b,0),
+               chartHidden:document.querySelector('#call-types')?.hidden,
+               mapRankings:document.querySelectorAll('#area-ranking .geo-rank-button').length,
             })""")
-            print("EVIDENCE CHECK",label,json.dumps(evidence,sort_keys=True),flush=True)
-            if (not evidence["renderedQuality"] or
-                evidence["category"] in ("", "Reviewing incident classifications…") or
-                evidence["area"] in ("", "Checking neighborhood coverage…", "Updating mapped neighborhoods…") or
-                not all(evidence[k].endswith("%") for k in ("type", "geographic", "transport")) or
-                "do not prove" not in evidence["scope"]):
-                raise AssertionError(f"{label}: findings or evidence-quality panel incomplete: {evidence}")
+            print("FILTERED TYPE",label,json.dumps(filtered,sort_keys=True),flush=True)
+            if (filtered["type"]!="BREATHING PROBLEMS" or filtered["total"]<=0 or
+                    filtered["total"]>=original_count or filtered["mapTotal"]!=filtered["total"] or
+                    not filtered["chartHidden"] or filtered["mapRankings"]<1):
+                raise AssertionError(f"{label}: incident filter did not update the whole dashboard: {filtered}")
+            selector.select_option("all")
+            page.wait_for_function(
+                "() => state.currentData?.incident_type === 'all' && state.areaData?.eligible_records === state.currentData?.records",
+                timeout=30000
+            )
 
             if trend["source"] != "d5d71757cc73400d843c98bcb46e46b6" or trend["plottedCount"] < 3:
                 raise AssertionError(f"{label}: wrong source or no daily trend: {trend}")

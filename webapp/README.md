@@ -61,12 +61,12 @@ Only minimal analytic fields are stored in `cleveland_ems_records`; `cleveland_e
 
 ## Aggregation and privacy
 
-- Six time windows × eight priority choices generate **48 precomputed** combinations of citywide counts and area summaries.
+- Six time windows × (All types plus ten common source-based incident types) generate **66 precomputed** combinations of citywide counts and area summaries.
 - The top-eight incident-classification chart reports counts and percentages of **all selected Cleveland rows**. Categories beyond the top eight remain part of the denominator.
 - The map uses `neighborhood` labels that match official boundaries; unmatched records are excluded from mapped totals, and the site reports matching coverage.
 - Area and neighborhood-category counts under **11** are not exposed as individual cells.
 - The daily trend uses complete `America/New_York` calendar days when comparing days; incomplete rolling-window boundary dates remain in KPIs and daily CSV.
-- `record_quality` reports count-based field availability (coded incident types, known flags, labeled neighborhoods) for the exact selected filter. The dashboard converts those counts to percentages of `records` and states the denominator; the percentages **do not certify completeness of the City's published feed**.
+- `record_quality` reports count-based field availability (coded incident types, known flags, labeled neighborhoods) for the exact selected filter. Those quality counts are checked internally and are no longer presented as a large public-facing panel; the percentages **do not certify completeness of the City's published feed**.
 - The GIS match percentage is calculated separately from the area summary, as `mapped_records / eligible_records`; geographic findings are restricted to the matched subset.
 - Export validation refuses a build when `daily`, `hours` or `priorities` sums disagree with `records`, when top category totals or quality counts exceed their denominators, or when geographic mapped and unmapped counts do not reconcile with citywide totals.
 - Source records are **not** independently verified unique emergency incidents. No patient addresses, incident IDs, or individual call coordinates reach the frontend.
@@ -74,6 +74,6 @@ Only minimal analytic fields are stored in `cleveland_ems_records`; `cleveland_e
 
 ## Validation
 
-`pytest -q` covers source-city and schema guards, idempotency, APIs, privacy thresholding, geographic joins, aggregate filters and snapshot assets. GitHub Actions runs additional source and polygon checks and a headless desktop/mobile Chrome review of the deployed preview, including the map, the call-type ranking and daily trend endpoints.
+`pytest -q` covers source-city and schema guards, idempotency, APIs, privacy thresholding, geographic joins, aggregate filters and snapshot assets. GitHub Actions runs additional source and polygon checks and a headless desktop/mobile Chrome review of the deployed preview, including the map, the call-type selector and daily trend endpoints.
 
 Cloudflare Pages serves only snapshots and frontend files. The database URI and Cloudflare deployment credentials are stored in GitHub Actions secrets, not in the codebase. Static preview deployments remain separate from production until the PR is merged.

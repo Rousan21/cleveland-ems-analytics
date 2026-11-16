@@ -9,12 +9,13 @@ def test_static_build_contains_only_cleveland_source_and_aggregate_geography(tmp
     import export_static
 
     calls=[]
-    def fake_summary(*, window, priority, now):
-        calls.append(("summary",window,priority))
+    def fake_summary(*, window, priority, incident_type, now):
+        calls.append(("summary",window,incident_type))
         return {
             "source_item_id":export_static.SOURCE_ITEM_ID,
             "source":"City of Cleveland (Ohio) CAD_EMS_Public",
-            "window":window,"priority":priority,"records":16,"total_stored":20,
+            "window":window,"priority":priority,"incident_type":incident_type,
+            "records":16,"total_stored":20,
             "daily":[{"date":"2026-11-10","count":16}],
             "hours":[{"hour":10,"count":16}],"priorities":[{"priority":"2","count":16}],
             "incident_types":[{"type":"Medical","count":16}],
@@ -35,8 +36,8 @@ def test_static_build_contains_only_cleveland_source_and_aggregate_geography(tmp
             "last_successful_sync":now.isoformat(),
         }
 
-    def fake_areas(*,window,priority,now,known_neighborhoods):
-        calls.append(("area",window,priority))
+    def fake_areas(*,window,priority,incident_type,now,known_neighborhoods):
+        calls.append(("area",window,incident_type))
         assert "Ohio City" in known_neighborhoods
         return {"status":"ready","eligible_records":16,"mapped_records":16,
                 "unmapped_records":0,"mapping_coverage_pct":100.0,
@@ -50,6 +51,10 @@ def test_static_build_contains_only_cleveland_source_and_aggregate_geography(tmp
                 "type":"Polygon","coordinates":[]}}
         ]}
 
+    monkeypatch.setattr(export_static,"common_incident_types",lambda:[
+        {"id":"type_01","label":"Medical"},
+        {"id":"type_02","label":"Falls"},
+        {"id":"type_03","label":"Breathing Problems"}])
     monkeypatch.setattr(export_static,"summarize",fake_summary)
     monkeypatch.setattr(export_static,"area_summary",fake_areas)
     monkeypatch.setattr(export_static,"get_boundaries",fake_boundaries)
@@ -63,17 +68,19 @@ def test_static_build_contains_only_cleveland_source_and_aggregate_geography(tmp
     assert 'id="transport-share"' in html
     assert 'id="reason-rankings"' in html
     assert 'id="reason-coverage"' in html
-    assert 'id="insight-category"' in html
-    assert 'id="insight-area"' in html
-    assert 'id="quality-types"' in html
-    assert 'id="quality-geo"' in html
-    assert 'id="quality-transport"' in html
+    assert 'id="incident-type"' in html
+    assert 'id="priority"' not in html
+    assert 'id="quality-types"' not in html
+    assert 'id="brief-title"' not in html
+    assert 'RESEARCH GUIDANCE' not in html
     assert 'id="priority-chart"' not in html
     assert (output/"static"/"v6.css").exists()
     assert (output/"static"/"v6.js").exists()
-    assert (output/"api"/"areas"/"7d"/"7.json").exists()
-    assert len([x for x in calls if x[0]=="summary"]) == 48
-    assert len([x for x in calls if x[0]=="area"]) == 48
+    assert (output/"api"/"areas"/"7d"/"type_03.json").exists()
+    types=json.loads((output/"api"/"incident-types.json").read_text())
+    assert types["types"][0]["label"]=="Medical"
+    assert len([x for x in calls if x[0]=="summary"]) == 24
+    assert len([x for x in calls if x[0]=="area"]) == 24
 
     summary=json.loads((output/"api"/"summary"/"30d"/"all.json").read_text())
     assert summary["source_item_id"] == export_static.SOURCE_ITEM_ID
@@ -93,6 +100,10 @@ def test_static_export_refuses_wrong_source(tmp_path,monkeypatch):
     monkeypatch.setattr(export_static,"get_boundaries",lambda:{
         "type":"FeatureCollection","features":[
             {"properties":{"name":f"Area {i}"}} for i in range(21)]})
+    monkeypatch.setattr(export_static,"common_incident_types",lambda:[
+        {"id":"type_01","label":"Medical"},
+        {"id":"type_02","label":"Falls"},
+        {"id":"type_03","label":"Breathing"}])
     monkeypatch.setattr(export_static,"summarize",lambda **kwargs:{
         "records":90,"total_stored":400,
         "source_item_id":"virginia-beach",

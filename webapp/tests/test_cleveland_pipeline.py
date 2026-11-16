@@ -233,3 +233,32 @@ def test_citywide_incident_type_distribution_has_clear_denominator():
     assert result["record_quality"]["transport_flag_known_count"]==21
     assert result["transported_count"]==21
     assert result["transport_flag_known"]==21
+
+
+def test_incident_type_filter_changes_citywide_and_neighborhood_totals():
+    from cleveland_pipeline import common_incident_types
+    now = datetime.now(timezone.utc) - timedelta(hours=3)
+    with SessionLocal() as db:
+        db.add_all([
+            ClevelandRecord(
+                object_id=i, incident_time=now,
+                neighborhood="Ohio City" if i<=18 else "Tremont",
+                priority="2",
+                incident_type="BREATHING PROBLEMS" if i<=24 else "SICK PERSON",
+                dispatch_flag="true", transport_flag="false"
+            ) for i in range(1,43)
+        ])
+        db.commit()
+    choices=common_incident_types()
+    assert len(choices)==2
+    breathing=next(x["id"] for x in choices if x["label"]=="BREATHING PROBLEMS")
+    selected=summarize(window="7d", incident_type=breathing)
+    assert selected["records"]==24
+    assert selected["selected_incident_type"]=="BREATHING PROBLEMS"
+    assert selected["incident_types"]==[{"type":"BREATHING PROBLEMS","count":24}]
+    geographic=area_summary(window="7d",incident_type=breathing,known_neighborhoods=["Ohio City","Tremont"])
+    assert geographic["eligible_records"]==24
+    assert geographic["mapped_records"]==24
+    assert [r["name"] for r in geographic["areas"]]==["Ohio City"]
+    with pytest.raises(ValueError,match="Unknown Cleveland incident"):
+        summarize(window="7d",incident_type="not_an_official_category")

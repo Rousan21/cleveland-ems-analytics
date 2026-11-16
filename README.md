@@ -26,13 +26,13 @@ I built Cleveland EMS Analytics as a practical, end-to-end data project: from pu
 | **What kinds of calls appear most often?** | Top-eight recorded **dispatch classifications**, shown as readable horizontal bars with counts and shares of all selected records |
 | **When are calls recorded?** | A complete-local-day trend and hour-of-day distribution |
 | **Are patients transported or units dispatched?** | Source-based transport and dispatch indicator percentages calculated only among known values |
-| **How do filters affect the data?** | Six preset date windows, Cleveland priority codes 1–7, and aggregate-only daily CSV export |
-| **What should a visitor make of the numbers?** | A source-backed observation about the leading recorded situation and largest mapped neighborhood count, updated with filters |
-| **How reliable is this particular view?** | Field availability for incident types and transport indicators, GIS label-matching coverage, snapshot date, and clear interpretation limits |
+| **How do filters affect the data?** | Six preset date windows, a source-driven selector for the ten most frequent incident types, and aggregate-only daily CSV export |
+| **What should a visitor make of the numbers?** | Area rankings, the incident-type distribution, and daily/hourly patterns directly reflect the selected filters |
+| **How reliable is this particular view?** | Source-data validation is enforced in the export pipeline, not shown as a large public-facing statistics panel |
 
 ![Top dispatch classifications and their shares of Cleveland EMS records](assets/incident-types.png)
 
-*The citywide incident-type chart responds to date and priority filters. Selecting a neighborhood instead updates the map's geographic detail, not the citywide charts. Labels reflect dispatch-time classifications, **not medical diagnoses**.*
+*The citywide incident-type chart appears with All incident types. Selecting one of the ten most frequent source classifications filters the map, daily trend and metrics together. Selecting a neighborhood instead updates the map's geographic detail, not the citywide charts. Labels reflect dispatch-time classifications, **not medical diagnoses**.*
 
 ## Source, integrity and definitions
 
@@ -41,7 +41,7 @@ I built Cleveland EMS Analytics as a practical, end-to-end data project: from pu
 - **Geography:** source-provided neighborhood labels are matched case-insensitively to official Cleveland GIS polygons. Unmatched records are excluded from mapped counts, match coverage is published, and area/category cells below **11** are withheld.
 - **Incident classifications:** `IncidentTypeDescription` reflects the situation as understood at dispatch time; it is not a confirmed diagnosis.
 - **Dispatch and transport:** the City's field metadata defines `isDispatch=true` as one or more units dispatched, and `isTransport=true` as an incident resulting in patient transport. Neither gives the number of unique patients, units, hospital admissions, or a response-time measurement.
-- **Priorities:** City metadata describes a usual priority ranking from 1 (highest) to 5 (lowest); the live source also contains codes 6 and 7, whose precise meaning and Alpha–Echo correspondence are unverified.
+- **Priorities:** The raw source has priority codes 1–7, but their meanings are not all documented. They remain accessible as underlying data, not a prominent public filter.
 - **Publication dates:** a rolling window begins mid-day. Partial boundary dates are excluded from the **comparative daily chart** but retained in headline totals and CSV. Even complete older dates may later be revised.
 
 ## Architecture
@@ -76,7 +76,7 @@ I built Cleveland EMS Analytics as a practical, end-to-end data project: from pu
 
 **Stack:** Python 3.12, SQLAlchemy, PostgreSQL/Neon, FastAPI, GitHub Actions, Cloudflare Pages, JavaScript, Chart.js, Leaflet and ArcGIS REST.
 
-Static builds precompute **48 date/priority selections** to avoid repeated database queries on each click. The browser receives aggregates and public neighborhood polygons—no individual EMS records, patient addresses, source incident IDs, or database secrets.
+Static builds precompute **66 date/incident selections** to avoid repeated database queries on each click. The browser receives aggregates and public neighborhood polygons—no individual EMS records, patient addresses, source incident IDs, or database secrets.
 
 ## Engineering decisions and lessons
 
@@ -120,7 +120,7 @@ CI additionally runs a headless Chrome check for desktop/mobile map sizing, geog
 
 ## Next improvements
 
-The filter-aware **“What the data reveals”** narrative and on-page **evidence-quality checks** are now implemented. The next priorities are **automated alerts for failed or anomalous imports**, a concise **first-time visitor walkthrough**, and **measured performance and update-reliability results**. These would strengthen the site without unnecessary charts or a neighborhood-comparison feature.
+The public interface now emphasizes incident types, geography, and daily/hourly trends; verbose evidence-quality panels were removed to make the project easier to explore. The next priorities are **automated alerts for failed or anomalous imports**, a concise **first-time visitor walkthrough**, and **measured performance and update-reliability results**. These would strengthen the site without unnecessary charts or a neighborhood-comparison feature.
 
 ---
 
