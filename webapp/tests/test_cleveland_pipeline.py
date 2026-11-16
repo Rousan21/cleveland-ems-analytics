@@ -96,6 +96,9 @@ def test_cleveland_import_idempotent_and_does_not_read_legacy_table():
     assert summary["dispatch_flag_known"]==3
     assert summary["transported_count"]==0
     assert summary["neighborhoods_in_source"]==2
+    assert summary["record_quality"]["neighborhood_labeled_count"]==3
+    assert summary["record_quality"]["incident_type_coded_count"]==3
+    assert summary["record_quality"]["dispatch_flag_known_count"]==3
     assert "PRIVATE" not in str(summary)
     assert "Virginia Beach" not in str(summary)
 
@@ -225,5 +228,8 @@ def test_citywide_incident_type_distribution_has_clear_denominator():
     assert result["incident_type_category_count"]==2
     assert result["incident_type_other_count"]==0
     assert result["incident_type_uncoded_count"]==0
+    assert result["record_quality"]["incident_type_coded_count"]==21
+    assert result["record_quality"]["priority_coded_count"]==21
+    assert result["record_quality"]["transport_flag_known_count"]==21
     assert result["transported_count"]==21
     assert result["transport_flag_known"]==21
