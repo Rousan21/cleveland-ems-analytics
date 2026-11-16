@@ -1,7 +1,17 @@
 name: EMS dashboard CI
 on:
+  # A PR already tests feature branches. Don't also test each branch push:
+  # that previously doubled runs and failure-notification emails.
   push:
+    branches: [main]
   pull_request:
+    branches: [main]
+    paths:
+      - 'webapp/**'
+      - '.github/workflows/ci.yml'
+concurrency:
+  group: ems-ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -17,5 +27,11 @@ jobs:
           cache-dependency-path: webapp/requirements.txt
       - run: python -m pip install -r requirements.txt
       - run: pytest -q
+      - name: Validate official Cleveland EMS source metadata
+        run: python audit_cleveland_source.py
+      - name: Audit Cleveland neighborhood GIS geometry and map bounds
+        run: python audit_map_geometry.py
       - name: Validate browser JavaScript syntax
-        run: node --check static/dashboard.js
+        run: |
+          node --check static/dashboard.js
+          node --check static/v6.js

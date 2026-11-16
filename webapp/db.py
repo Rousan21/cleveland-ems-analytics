@@ -24,6 +24,31 @@ class EMSCall(Base):
     city: Mapped[str | None] = mapped_column(String(32))
 
 
+class ClevelandRecord(Base):
+    """City of Cleveland CAD EMS records. No incident IDs or locations stored."""
+    __tablename__ = "cleveland_ems_records"
+
+    object_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    incident_time: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
+    neighborhood: Mapped[str | None] = mapped_column(String(100), index=True)
+    priority: Mapped[str | None] = mapped_column(String(12), index=True)
+    incident_type: Mapped[str | None] = mapped_column(String(120))
+    dispatch_flag: Mapped[str | None] = mapped_column(String(8))
+    transport_flag: Mapped[str | None] = mapped_column(String(8))
+    tract: Mapped[str | None] = mapped_column(String(24))
+
+
+class ClevelandSyncRun(Base):
+    """Independent provenance so old Virginia Beach syncs can never leak into v6."""
+    __tablename__ = "cleveland_ems_sync_runs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    finished_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    record_count: Mapped[int] = mapped_column(Integer)
+    status: Mapped[str] = mapped_column(String(20))
+    detail: Mapped[str | None] = mapped_column(Text)
+
+
 class EMSArea(Base):
     """Verified, separately reviewed OBJECTID → neighborhood lookup."""
     __tablename__ = "ems_verified_areas"

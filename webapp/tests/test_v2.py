@@ -13,7 +13,8 @@ from sqlalchemy import delete, select, func
 from db import EMSCall, EMSArea, SyncRun, SessionLocal, engine, init_database
 from analytics import summarize, get_bounds
 from ingest import fetch_pages, row_from_attributes, sync_data
-from main import app
+# Historical Virginia Beach prototype tests, not the current Cleveland service.
+from legacy_virginia_beach_api import app
 
 
 @pytest.fixture(autouse=True)

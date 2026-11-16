@@ -1,0 +1,208 @@
+/* Cleveland v6: actionable GIS neighborhood counts and accessible ranking. */
+.geo-toolbar-tip {font-size:11px;color:#85d6c7;font-weight:650;letter-spacing:.02em}
+.geo-rank-item {list-style:none;margin:0;padding:0!important;border-bottom:1px solid #2a4657!important}
+.geo-rank-button {width:100%;text-align:left;border:0;background:transparent;padding:11px 0 12px;
+  display:grid;gap:8px;color:#bfd9e5;cursor:pointer;border-radius:7px}
+.geo-rank-button:hover,.geo-rank-button:focus-visible {background:#213c4c;padding-left:7px;padding-right:7px}
+.geo-rank-head {display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:11px}
+.geo-rank-head>span {color:#b5cfdb;font-weight:650}
+.geo-rank-head strong {color:#6ef0d3;font:800 12px Manrope,sans-serif;white-space:nowrap}
+.geo-rank-progress {display:block;height:5px;background:#2b4351;border-radius:8px;overflow:hidden}
+.geo-rank-progress>span {display:block;background:linear-gradient(90deg,#1e8995,#52e3c6);
+  height:100%;border-radius:7px;transition:width .35s ease}
+.geo-detail-pane {min-height:505px}
+.geo-detail-pane .area-ranking {max-height:325px}
+.geo-detail-pane .map-legend {display:flex;align-items:center;gap:9px;margin-top:12px}
+.geo-detail-pane .map-legend[hidden] {display:none}
+#map .leaflet-control-container {display:block}
+#map .leaflet-control-attribution {font-size:8px;background:rgba(9,22,35,.78);
+  color:#8ca6b6;border:1px solid #253b49;border-radius:5px}
+#map .leaflet-control-attribution a {color:#79d7ca}
+#map .leaflet-control-zoom {border:1px solid #376070;box-shadow:0 3px 10px rgba(0,0,0,.24)}
+#map .leaflet-control-zoom a {background:#143244;color:#bcf4e8;border-bottom:1px solid #31576a}
+#map .leaflet-control-zoom a:hover {background:#205467;color:white}
+#map .leaflet-tooltip {font-size:12px}
+.geo-map-pane .map-corner-legend {font-size:9px}
+.geo-detail-pane .geo-note {font-size:11px;line-height:1.7}
+#insight-quality {font-size:clamp(17px,1.65vw,25px);letter-spacing:-.3px;overflow-wrap:anywhere}
+.site-footer {margin-bottom:8px}
+.range-button[hidden] {display:none!important}
+@media(max-width:1020px){
+  .geo-detail-pane {min-height:0}
+  .geo-detail-pane .area-ranking {max-height:420px}
+}
+@media(max-width:600px){
+  .geo-toolbar-tip {order:3;width:100%;font-size:10px}
+  #map .leaflet-control-zoom {margin-top:10px;margin-right:9px}
+  .geo-map-pane .map-corner-legend {left:8px;bottom:48px;max-width:90%;line-height:1.6;flex-wrap:wrap}
+}
+
+
+/* Fixed vertical sizing: a tall rankings column previously stretched the
+   flex-based Leaflet map to nearly 1,000 px, obscuring its geographic context. */
+.geo-body { align-items: stretch; }
+.geo-map-pane {
+  height: 600px; min-height: 600px; max-height: 600px;
+  overflow: hidden;
+}
+#map {
+  width: 100%; height: 600px; min-height: 600px; max-height: 600px;
+  flex: 0 0 600px;
+  background:
+    radial-gradient(ellipse 65% 55% at 54% 46%,rgba(27,78,90,.20),transparent 100%),
+    repeating-linear-gradient(0deg,transparent 0,transparent 39px,rgba(76,124,147,.065) 40px),
+    repeating-linear-gradient(90deg,transparent 0,transparent 39px,rgba(76,124,147,.065) 40px),
+    #0c1d2c;
+}
+.geo-detail-pane {
+  height: 600px; min-height: 0; max-height: 600px;
+  overflow-y: auto; overscroll-behavior: contain;
+  scrollbar-color: #355866 #132b3a; scrollbar-width: thin;
+}
+/* A flex child without a minimum shrank the entire ranked list to zero.
+   Reserve a real scrollable list so geographic evidence is immediately visible. */
+.geo-detail-pane .area-ranking {
+  flex: 0 0 195px;
+  height: 195px;
+  min-height: 195px;
+  max-height: 195px;
+  overflow-y:auto;
+  margin: 9px 0 10px;
+  padding-right: 5px;
+  scrollbar-width:thin;
+  scrollbar-color:#376477 #162c3b;
+}
+#map .leaflet-container {background:transparent}
+@media(max-width:1020px) {
+  .geo-map-pane {height:430px;min-height:430px;max-height:430px}
+  #map {height:430px;min-height:430px;max-height:430px;flex:0 0 430px}
+  .geo-detail-pane {height:auto;min-height:0;max-height:none;overflow:visible}
+  .geo-detail-pane .area-ranking {flex:0 0 225px;height:225px;min-height:225px;max-height:225px}
+}
+@media(max-width:600px) {
+  .geo-map-pane {height:360px;min-height:360px;max-height:360px}
+  #map {height:360px;min-height:360px;max-height:360px;flex:0 0 360px}
+}
+
+/* Compact source-grounded neighborhood incident type, separate from citywide KPI. */
+.geo-local-insight {
+  background: linear-gradient(125deg,#123b42,#163448);
+  border:1px solid #386570;border-radius:11px;
+  padding:12px 13px;margin:8px 0 15px;display:grid;gap:5px;
+}
+.geo-local-insight .overline {margin:0;color:#76e4d4;font-size:9px;letter-spacing:.8px}
+.geo-local-insight strong {color:#e2fff9;font:800 16px/1.3 Manrope,sans-serif;overflow-wrap:anywhere}
+.geo-local-insight p {color:#a4c4ce;font-size:10px;line-height:1.65;margin:0}
+.priority-code-note {font-size:10px;line-height:1.65;color:#81a7b6;margin:9px 2px 0}
+#daily-chart-note {min-height:40px}
+
+
+/* Dispatch-time incident categories, ranked by records with shares of all rows. */
+.reasons-panel {margin:0 0 20px;padding:25px 27px 23px}
+.reasons-panel .panel-header {align-items:flex-start;gap:18px;flex-wrap:wrap;margin-bottom:23px}
+.reasons-panel .panel-header h2 {font:800 clamp(18px,2vw,27px)/1.25 Manrope,sans-serif;letter-spacing:-.55px}
+.reasons-panel .panel-header p {max-width:790px;font-size:12px;line-height:1.7;margin-top:7px}
+.reasons-panel .panel-header .tag {margin-top:6px;font-size:9px}
+.reasons-content {display:grid;grid-template-columns:minmax(0,1.7fr) minmax(260px,.67fr);gap:30px;align-items:start}
+.reason-rankings {list-style:none;padding:0;margin:0;display:grid;gap:13px}
+.reason-row {list-style:none;min-width:0;display:grid;gap:7px}
+.reason-row-top {display:flex;align-items:baseline;gap:12px;justify-content:space-between;min-width:0}
+.reason-rank {color:#557d91;font:700 10px/1.45 Manrope,sans-serif;flex:0 0 18px}
+.reason-name {color:#d8edf3;font:700 11px/1.42 'DM Sans',sans-serif;flex:1;min-width:0;overflow-wrap:anywhere}
+.reason-count {color:#91dfd2;font:800 11px/1.5 Manrope,sans-serif;white-space:nowrap;text-align:right}
+.reason-track {margin-left:30px;height:9px;border-radius:12px;background:#213848;overflow:hidden}
+.reason-fill {display:block;height:100%;border-radius:12px;background:linear-gradient(90deg,#287fa2,#37d5bc)}
+.reason-row:first-child .reason-fill {background:linear-gradient(90deg,#369db2,#61f1d4)}
+.reason-empty {color:#9fc1cd;font-size:12px;line-height:1.7}
+.reasons-context {border:1px solid #315365;border-radius:14px;background:linear-gradient(155deg,#142e3d,#142432);padding:23px 20px;display:grid;gap:12px;min-width:0}
+.reasons-context .overline {font-size:9px;letter-spacing:1.6px;color:#78d8c8}
+.reason-coverage {color:#62dfcb;font:800 42px/1.16 Manrope,sans-serif;letter-spacing:-1.4px}
+.reasons-context p {font-size:11px;color:#9cb8c5;line-height:1.75;margin:0}
+.reason-context-divider {height:1px;background:#305064;margin:5px 0}
+.reasons-context .reason-context-caveat {font-size:10px;color:#819eaf}
+.trend-only {display:block}
+.trend-only .panel.wide {width:100%;min-width:0}
+@media(max-width:1030px) {
+  .reasons-content {grid-template-columns:minmax(0,1fr)}
+  .reasons-context {grid-template-columns:minmax(0,.35fr) minmax(0,1fr);gap:8px 20px}
+  .reasons-context .reason-coverage {grid-row:2/4}
+  .reason-context-divider {grid-column:1/-1}
+}
+@media(max-width:650px) {
+  .reasons-panel {padding:19px 16px}
+  .reasons-panel .panel-header {margin-bottom:20px}
+  .reasons-content {gap:23px}
+  .reason-row-top {gap:7px}
+  .reason-rank {flex-basis:16px}
+  .reason-name {font-size:10px}
+  .reason-count {font-size:10px}
+  .reason-track {margin-left:23px;height:7px}
+  .reasons-context {display:grid;grid-template-columns:1fr}
+  .reasons-context .reason-coverage {grid-row:auto;font-size:32px}
+}
+
+
+/* Findings are written as explanations with denominators, not decorative KPIs. */
+.interpretation-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:6px 0 16px}
+.interpretation-card{border:1px solid #315667;border-radius:14px;padding:23px 23px 21px;
+  background:linear-gradient(145deg,#143b46,#122838);min-width:0;display:grid;gap:11px;align-content:start}
+.interpretation-card:nth-child(2){background:linear-gradient(145deg,#1c344c,#122736)}
+.interpretation-card .overline{color:#77dfd0;letter-spacing:1.2px;font-size:9px}
+.interpretation-card h3{font:800 clamp(17px,2vw,25px)/1.25 Manrope,sans-serif;
+  color:#e7fafc;letter-spacing:-.4px;overflow-wrap:anywhere;margin:0}
+.interpretation-card p{font-size:12px;line-height:1.8;color:#a9c7d4;margin:0}
+.interpretation-caveat{font-size:10px;line-height:1.6;color:#7da4b5;
+  border-top:1px solid #315166;padding-top:12px;align-self:end}
+.quality-panel{background:#132737;border:1px solid #2e4a5e;border-radius:14px;
+  padding:21px 23px;margin-bottom:20px;display:grid;gap:17px}
+.quality-header{display:flex;justify-content:space-between;align-items:start;gap:14px;flex-wrap:wrap}
+.quality-header .overline{font-size:9px;letter-spacing:1.2px;color:#7dd7cd}
+.quality-header h3{font:800 17px/1.35 Manrope,sans-serif;margin:7px 0 0;color:#e4f4f9}
+.quality-snapshot{color:#95b3c1;font-size:10px;line-height:1.6}
+.quality-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:0;border-top:1px solid #2b4756;border-bottom:1px solid #2b4756}
+.quality-metrics>div{padding:16px 18px 15px 0;display:grid;gap:5px;min-width:0}
+.quality-metrics>div+div{border-left:1px solid #2b4756;padding-left:19px}
+.quality-metrics span{font-size:11px;font-weight:650;color:#b9cfda}
+.quality-metrics strong{font:800 24px/1.15 Manrope,sans-serif;color:#64ddc8}
+.quality-metrics small{font-size:10px;line-height:1.6;color:#87a6b5}
+.quality-explanation{color:#89a9b8;font-size:11px;line-height:1.8;margin:0}
+@media(max-width:800px){
+  .interpretation-grid{grid-template-columns:1fr}
+}
+@media(max-width:600px){
+  .interpretation-card{padding:18px 17px}
+  .quality-panel{padding:18px 16px}
+  .quality-metrics{grid-template-columns:1fr}
+  .quality-metrics>div{padding:13px 0}
+  .quality-metrics>div+div{border-left:0;border-top:1px solid #2b4756;padding:13px 0}
+  .quality-metrics strong{font-size:23px}
+}
+
+
+/* Recruiter-friendly view: show what, where, when; keep validation in CI.
+   The removed evidence panel and guidance cards are intentionally not public. */
+#snapshot-note[hidden],#call-types[hidden] {display:none!important}
+.sync-box{font-size:11px;text-align:right}
+#activity-detail{display:block}
+#activity-detail>.panel{width:100%}
+.reasons-content{display:block}
+.reason-rankings{max-width:970px}
+.reason-inline-note,.reason-scope{font-size:11px;line-height:1.65;color:#90aebc;margin:12px 0 0}
+.reason-inline-note strong{color:#66dbca;font-weight:800}
+.reason-scope{font-size:10px;margin-top:5px}
+.priority-select select#incident-type{max-width:360px;width:min(360px,56vw);min-width:195px}
+.priority-select{align-items:center}
+
+/* GIS-methodology information stays accessible but outside the primary metrics. */
+.geo-source-note {display:inline;color:#7d9eae;font-size:10px;font-weight:500;white-space:normal;margin-left:5px}
+.geo-footnote{font-size:10px;line-height:1.75}
+
+
+/* Only two distinct, useful KPIs: selected published records and patient transport. */
+.kpi-grid {grid-template-columns:repeat(2,minmax(0,1fr))}
+.kpi-grid .kpi {min-height:133px}
+@media(max-width:600px) {
+  .kpi-grid {grid-template-columns:1fr}
+  .kpi-grid .kpi {min-height:116px}
+}

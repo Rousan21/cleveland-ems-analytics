@@ -3,18 +3,22 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="color-scheme" content="light" />
-  <meta name="description" content="Explore publicly released Cleveland EMS activity through an interactive data dashboard." />
-  <title>Cleveland EMS | City Response Explorer</title>
+  <meta name="color-scheme" content="dark" />
+  <meta name="description" content="Explore verified City of Cleveland EMS records, neighborhood volume, incident categories and comparable daily activity through an interactive data dashboard." />
+  <title>Cleveland EMS | Dispatch Intelligence</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/styles.css" />
   <link rel="stylesheet" href="/static/v3.css" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzxoknFGvkFSk8o+aqMS0vw8p=" crossorigin="" />
+  <link rel="stylesheet" href="/static/vendor/leaflet.css" />
+  <link rel="stylesheet" href="/static/v5.css" />
+  <link rel="stylesheet" href="/static/v6.css" />
+  <!-- Serve Leaflet CSS from our own Cloudflare domain: a blocked CDN stylesheet broke the map layout. -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js" defer></script>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="" defer></script>
   <script src="/static/dashboard.js" defer></script>
+  <script src="/static/v6.js" defer></script>
 </head>
 <body>
   <div class="shell">
@@ -22,14 +26,14 @@
       <div class="brand"><span class="brand-icon">✚</span><div>CLE<span class="brand-accent">/</span>EMS<small>Public Data Explorer</small></div></div>
       <div class="nav-label">WORKSPACE</div>
       <a href="#overview" class="nav-link active"><span>◫</span> Overview</a>
-      <a href="#insights" class="nav-link"><span>✦</span> Key insights</a>
+      <a href="#geography" class="nav-link"><span>⬡</span> Geographic explorer</a>
       <a href="#trends" class="nav-link"><span>⌁</span> Activity trends</a>
-      <a href="#geography" class="nav-link"><span>⬡</span> Geographic view</a>
-      <div class="sidebar-bottom"><span class="pulse"></span> Based on public EMS records <p>Independent educational analysis. Not an official Cleveland EMS dashboard.</p></div>
+      <a href="#call-types" class="nav-link"><span>≡</span> Incident types</a>
+      <div class="sidebar-bottom"><div class="sidebar-info"><span class="pulse"></span> PUBLIC DATA PROJECT</div><p>Designed and developed by Adam Al-Rousan.</p><p>Independent analysis, not an official City of Cleveland product.</p></div>
     </aside>
     <main id="overview" class="main">
       <div class="topbar">
-        <span class="breadcrumb">PUBLIC DATA <span>/</span> CLEVELAND EMS <span>/</span> OVERVIEW</span>
+        <span class="breadcrumb">CLEVELAND <span>/</span> PUBLIC SAFETY <span>/</span> DATA EXPLORER</span>
         <div class="topbar-links">
           <a class="docs-link" href="https://github.com/Rousan21/cleveland-ems-analytics" target="_blank" rel="noopener noreferrer">View code ↗</a>
           <a class="docs-link" href="https://www.arcgis.com/home/item.html?id=d5d71757cc73400d843c98bcb46e46b6" target="_blank" rel="noopener noreferrer">Data source ↗</a>
@@ -37,21 +41,26 @@
       </div>
       <header class="hero">
         <div class="hero-copy">
-          <div class="eyebrow"><span class="eyebrow-dot"></span> CITY OPERATIONS / OPEN DATA EXPLORER</div>
-          <h1>Cleveland EMS <em>at a glance.</em></h1>
-          <p>An interactive look at published EMS dispatch records — when they appear, how activity varies, and where the data leaves important questions unanswered.</p>
-          <div class="hero-pills"><span class="hero-pill">Public records</span><span class="hero-pill">Daily snapshots</span><span class="hero-pill">Independent analysis</span></div>
+          <div class="eyebrow"><span class="eyebrow-dot"></span> INDEPENDENT OPEN-DATA INTELLIGENCE</div>
+          <h1>See Cleveland EMS<br><em>through the data.</em></h1>
+          <p>Explore where Cleveland EMS activity is recorded, which situations are most common, and how patterns change over time.</p>
+          <div class="hero-pills">
+            <span class="hero-pill"><span class="hero-led"></span> Official Cleveland CAD source</span>
+            <span class="hero-pill">Neighborhood-level aggregates</span>
+            <span class="hero-pill">Research-first analysis</span>
+          </div>
         </div>
         <div class="hero-stamp" aria-hidden="true">
-          <div class="hero-stamp-icon">✚</div>
-          <div class="hero-stamp-title">FROM RECORDS<br>TO INSIGHT.</div>
+          <div class="hero-stamp-mark">CLE / EMS</div>
+          <div class="hero-stamp-graphic"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+          <div class="hero-stamp-title">ANALYZE.<br>UNDERSTAND.<br>QUESTION.</div>
           <div class="hero-stamp-rule"></div>
-          <div class="hero-stamp-foot">CLEVELAND, OHIO <span>∙</span> OPEN DATA</div>
+          <div class="hero-stamp-foot">PUBLIC DATA <span>×</span> ENGINEERING</div>
         </div>
       </header>
-      <section class="filters" aria-label="Date and priority filters">
-        <div class="filter-top"><div><div class="overline">QUERY THE DATA</div><strong>Explore the records</strong></div>
-          <div class="sync-box"><span id="sync-indicator" role="status">Checking data freshness…</span><span id="snapshot-note">Loading published aggregates…</span></div>
+      <section class="filters" aria-label="Date and incident type filters">
+        <div class="filter-top"><div><div class="overline">DASHBOARD CONTROLS</div><strong>Filter published records</strong></div>
+          <div class="sync-box"><span id="sync-indicator" role="status">Checking data…</span><span id="snapshot-note" hidden>Loading published aggregates…</span></div>
         </div>
         <div class="filter-row">
           <div class="range-buttons" role="group" aria-label="Time range">
@@ -61,53 +70,77 @@
             <button type="button" class="range-button" data-window="90d">3 months</button>
             <button type="button" class="range-button" data-window="1y">1 year</button>
             <button type="button" class="range-button" data-window="all">All imported</button>
-            <button type="button" class="range-button" data-window="custom">Custom</button>
+            <button type="button" class="range-button" data-window="custom" hidden title="Custom date filters are temporarily disabled during the Cleveland data-source migration">Custom</button>
           </div>
-          <label class="priority-select">Call priority <select id="priority"><option value="all">All priorities</option><option value="1">Priority 1</option><option value="2">Priority 2</option><option value="3">Priority 3</option></select></label>
+          <label class="priority-select" for="incident-type">Incident type <select id="incident-type" aria-label="Filter by recorded Cleveland EMS incident type"><option value="all">All incident types</option></select></label>
         </div>
         <div id="custom-range" class="custom-range" hidden><label>From <input type="date" id="start-date"></label><label>Through <input type="date" id="end-date"></label><button id="apply-custom" type="button">Apply range</button></div>
         <div id="error-message" role="alert" class="error" hidden></div>
       </section>
-      <section class="kpi-grid" aria-label="EMS summary metrics">
-        <article class="kpi"><div class="kpi-label">EMS dispatch records <span>↗</span></div><div class="kpi-value" id="total-calls">—</div><div class="kpi-meta">Published rows with a recorded dispatch time</div></article>
-        <article class="kpi"><div class="kpi-label">Median call → dispatch <span>◷</span></div><div class="kpi-value" id="median-dispatch">—</div><div class="kpi-meta">Minutes, where timestamps are valid</div></article>
-        <article class="kpi"><div class="kpi-label">Median call → on scene <span>◷</span></div><div class="kpi-value" id="median-scene">—</div><div class="kpi-meta">Minutes, where timestamps are valid</div></article>
-        <article class="kpi kpi-dark"><div class="kpi-label">Records in database <span>◈</span></div><div class="kpi-value" id="total-stored">—</div><div class="kpi-meta">Across all imported periods</div></article>
+      <section class="kpi-grid" aria-label="Cleveland EMS summary metrics">
+        <article class="kpi"><div class="kpi-label">Published EMS records <span>↗</span></div><div class="kpi-value" id="total-calls">—</div><div class="kpi-meta">Cleveland source records · selected filters</div></article>
+        <article class="kpi"><div class="kpi-label">Patient transport reported <span title="Cleveland CAD isTransport=true means the incident resulted in transporting a patient. It does not establish hospital admission, destination, transport time or the number of unique people.">ⓘ</span></div><div class="kpi-value" id="transport-share">—</div><div class="kpi-meta" id="transport-meta">Of records with a known patient-transport indicator</div></article>
       </section>
-      <section id="insights" class="insights-section" aria-labelledby="insights-title">
-        <div class="section-heading"><div>
-          <div class="overline">A CLOSER LOOK</div>
-          <h2 id="insights-title">What the records reveal</h2>
-          <p>Highlights calculated from the selected published records, not estimates of unique emergencies.</p>
-        </div><span class="section-index">01 — INSIGHTS</span></div>
-        <div class="insights-grid" aria-live="polite">
-          <article class="insight-card insight-teal">
-            <div class="insight-top"><span class="insight-icon" aria-hidden="true">◷</span><span class="insight-label">Busiest dispatch hour</span></div>
-            <div class="insight-value" id="insight-hour">—</div>
-            <p class="insight-detail" id="insight-hour-detail">Analyzing hourly distribution…</p>
-            <div class="insight-bottom">BASED ON RECORDED DISPATCH TIMES</div>
-          </article>
-          <article class="insight-card insight-blue">
-            <div class="insight-top"><span class="insight-icon" aria-hidden="true">◈</span><span class="insight-label" id="insight-priority-title">Most common priority</span></div>
-            <div class="insight-value" id="insight-priority">—</div>
-            <p class="insight-detail" id="insight-priority-detail">Reviewing priority codes…</p>
-            <div class="insight-bottom">SOURCE PRIORITY CODES · NOT SEVERITY CLAIMS</div>
-          </article>
-          <article class="insight-card insight-violet">
-            <div class="insight-top"><span class="insight-icon" aria-hidden="true">✓</span><span class="insight-label">Timestamp completeness</span></div>
-            <div class="insight-value" id="insight-quality">—</div>
-            <p class="insight-detail" id="insight-quality-detail">Checking valid timing pairs…</p>
-            <div class="insight-bottom">CALL-TO-SCENE TIME PAIRS</div>
-          </article>
+      <section id="geography" class="geo-section" aria-labelledby="geo-title">
+        <div class="section-heading geo-head">
+          <div><div class="overline">01 / GEOGRAPHIC EXPLORER</div>
+            <h2 id="geo-title">The geography of Cleveland EMS</h2>
+            <p>Real Cleveland EMS records grouped by their source-provided neighborhood labels, matched to official Cleveland GIS boundaries.</p>
+          </div><span class="section-index">CITY EXPLORER · CLEVELAND, OH</span>
+        </div>
+        <div class="geo-toolbar">
+          <label class="geo-select-label" for="neighborhood-select"><span>NEIGHBORHOOD</span>
+            <select id="neighborhood-select" disabled><option value="">Loading Cleveland areas…</option></select>
+          </label>
+          <span class="geo-toolbar-tip">Shading = published EMS record count · select a neighborhood</span>
+          <button id="neighborhood-reset" type="button" class="geo-reset" disabled>Reset map</button>
+        </div>
+        <div class="geo-body">
+          <div class="geo-map-pane">
+            <div id="map" role="region" aria-label="Interactive official Cleveland neighborhood map shaded by aggregate, source-matched EMS record counts. No patient locations."></div>
+            <div class="map-corner-legend"><span class="area-legend-swatch"></span> Neighborhood polygons <span class="legend-separator"></span> Brighter = higher published record count</div>
+            <div id="map-status" class="map-caption" role="status">Loading official neighborhood outlines…</div>
+          </div>
+          <aside class="geo-detail-pane">
+            <div class="geo-statline"><span class="overline">GEOGRAPHIC CONTEXT</span><span class="geo-status-tag" id="geo-data-status">MATCHING GIS…</span></div>
+            <h3 id="selected-neighborhood-name">Explore an area</h3>
+            <p id="selected-neighborhood-copy">Select a neighborhood to inspect its aggregate volume, share of mapped records, and rank for the current filters.</p>
+            <div class="geo-local-insight" aria-live="polite">
+              <div class="overline" id="area-type-heading">NEIGHBORHOOD INCIDENT TYPES</div>
+              <strong id="area-type-value">Choose a neighborhood</strong>
+              <p id="area-type-meta">The map can reveal the most common published incident classification in a selected Cleveland neighborhood.</p>
+            </div>
+            <div class="geo-detail-divider"></div>
+            <div class="geo-ranking-head"><h4 id="area-ranking-title">Highest published EMS volume</h4><span id="area-ranking-badge">VERIFICATION REQUIRED</span></div>
+            <ol class="area-ranking" id="area-ranking" aria-label="Ranked Cleveland neighborhoods by published EMS record count"><li class="area-empty">No validated area assignments yet.</li></ol>
+            <p id="map-explainer" class="geo-note">Loading Cleveland neighborhood aggregates…</p>
+            <div id="map-legend" class="map-legend" hidden><span>Lower verified count</span><div class="legend-ramp"></div><span>Higher</span></div>
+          </aside>
+        </div>
+        <div class="geo-footnote" role="note">Neighborhood counts reflect published EMS rows, not population-adjusted risk. Small cells (fewer than 11 rows) are suppressed. <span id="geo-match-note" class="geo-source-note" title="Source-provided neighborhood labels must match Cleveland's official GIS polygons. Unmatched records are excluded from mapped counts.">Checking geographic matching…</span></div>
+      </section>
+      <section id="call-types" class="panel reasons-panel" aria-labelledby="call-types-title">
+        <div class="panel-header">
+          <div><div class="overline">02 / RECORDED INCIDENT TYPES</div>
+            <h2 id="call-types-title">What kinds of situations appear in EMS records?</h2>
+            <p>The most frequent recorded call types for your selected dates. Choose a specific incident type to see its locations and timing.</p>
+          </div><span class="tag">TOP EIGHT</span>
+        </div>
+        <div class="reasons-content">
+          <ol class="reason-rankings" id="reason-rankings" aria-label="Eight leading source incident classifications"><li class="reason-empty">Loading source incident classifications…</li></ol>
+          <p class="reason-inline-note">Top eight represent <strong id="reason-coverage">—</strong> of records with an incident reason. <span id="reason-coverage-detail"></span></p>
+          <p id="reason-filter-scope" class="reason-scope">Citywide · administrative and uncoded records remain in overall totals, not reason rankings.</p>
         </div>
       </section>
-      <section id="trends" class="two-col"><article class="panel wide"><div class="panel-header"><div><div class="overline">01 / ACTIVITY</div><h2>Published dispatch records by day</h2><p>Source rows by dispatch date within your selected period.</p></div><div class="panel-actions"><span class="tag">DAILY</span><button type="button" id="download-daily" class="small-action" title="Download the aggregated daily counts as CSV">Export CSV <span aria-hidden="true">↗</span></button></div></div><div class="chart-wrap"><canvas id="volume-chart" aria-label="Daily published dispatch record counts" role="img"></canvas></div><p class="data-quality-note" role="note">Recent dates may be incomplete or updated later by the source. These are published records, not verified unique incidents; do not infer a sudden change in demand from the latest points alone.</p></article><article class="panel narrow"><div class="panel-header"><div><div class="overline">02 / PRIORITY</div><h2>Priority mix</h2><p>Published dispatch records by priority code.</p></div></div><div class="chart-wrap donut-wrap"><canvas id="priority-chart" aria-label="Call counts by priority" role="img"></canvas></div></article></section>
-      <section class="two-col second-row"><article class="panel"><div class="panel-header"><div><div class="overline">03 / TIMING</div><h2>Recorded dispatches by hour</h2><p>Published record counts · Cleveland local time (Eastern).</p></div></div><div class="chart-wrap"><canvas id="hour-chart" aria-label="Calls by dispatch hour" role="img"></canvas></div></article><article id="geography" class="panel"><div class="panel-header"><div><div class="overline">04 / GEOGRAPHY</div><h2>Neighborhood overview</h2><p>Verified area totals, when available.</p></div><span class="tag">VECTOR MAP</span></div><div id="map" aria-label="Cleveland neighborhood boundary map" role="img"></div>
-<div class="map-caption" id="map-status" role="status">Loading neighborhood outlines…</div>
-<div id="map-legend" class="map-legend" hidden><span>Lower verified call count</span><div class="legend-ramp"></div><span>Higher</span></div>
-<p class="map-note" id="map-explainer">Checking whether verified area totals are available…</p>
-<h3 class="area-title">Neighborhood ranking</h3><ol class="area-ranking" id="area-ranking"><li class="area-empty">Checking availability…</li></ol></article></section>
-      <footer><span id="coverage">Source coverage: waiting for first import</span><p>Call-to-event intervals are exploratory, <strong>not</strong> official EMS response-time performance metrics. Source records may be delayed or corrected; one emergency incident may have multiple source rows.</p></footer>
+      <section id="trends" class="two-col trend-only"><article class="panel wide"><div class="panel-header"><div><div class="overline">03 / ACTIVITY</div><h2>Published EMS records by day</h2><p>Comparable complete Cleveland-local dates within the selected period.</p></div><div class="panel-actions"><span class="tag">DAILY</span><button type="button" id="download-daily" class="small-action" title="Download the aggregated daily counts as CSV">Export CSV <span aria-hidden="true">↗</span></button></div></div><div class="chart-wrap"><canvas id="volume-chart" aria-label="Daily published Cleveland EMS record counts" role="img"></canvas></div><p class="data-quality-note" id="daily-chart-note" role="note">Comparing complete Cleveland-local dates only. Partial boundary dates remain in the totals and CSV export, not the daily trend. Recent published records can still be revised.</p></article></section>
+      <section class="two-col second-row" id="activity-detail">
+        <article class="panel"><div class="panel-header"><div><div class="overline">04 / TIME-OF-DAY</div><h2>When does published EMS activity occur?</h2><p>Counts by Cleveland-local incident hour for the selected period.</p></div></div><div class="chart-wrap"><canvas id="hour-chart" aria-label="Cleveland EMS source records by incident hour" role="img"></canvas></div></article>
+      </section>
+      <footer class="site-footer">
+        <div class="footer-identity"><strong>Cleveland EMS Analytics</strong><span>Independently developed by <strong>Adam Al-Rousan</strong> · <a href="https://github.com/Rousan21/cleveland-ems-analytics" target="_blank" rel="noopener noreferrer">Source code ↗</a></span>
+          <span id="coverage">Source coverage: waiting for first import</span></div>
+        <p>City of Cleveland public CAD records. Dispatch classifications are not diagnoses, and published rows are not verified unique incidents. Independent portfolio project.</p>
+      </footer>
     </main>
   </div>
 </body>

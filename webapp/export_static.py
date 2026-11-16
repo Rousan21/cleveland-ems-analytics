@@ -1,7 +1,7 @@
-"""Build a privacy-preserving, static Cloudflare Pages dashboard from aggregate API data.
+"""Build the *Cleveland, Ohio* EMS analytics site from verified source fields.
 
-Run inside a CI worker with EMS_DATABASE_URL pointing at Neon. Only summary JSON
-and public neighborhood polygons are exported; incident rows never leave the DB.
+Export only aggregate citywide/neighborhood summaries and official neighborhood
+polygons. No record-level data, patient addresses, identifiers, or credentials.
 """
 import argparse
 import json
@@ -10,12 +10,12 @@ import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 
-from analytics import summarize
-from geography import get_area_summary, get_boundaries
+from cleveland_pipeline import SOURCE_ITEM_ID, area_summary, summarize, common_incident_types
+from geography import get_boundaries
 
 HERE = Path(__file__).resolve().parent
 WINDOWS = ("24h", "7d", "30d", "90d", "1y", "all")
-PRIORITIES = ("all", "1", "2", "3")
+# Public site filters by ten common source-recorded types; priority remains internal.
 
 
 def write_json(destination: Path, payload):
@@ -26,12 +26,54 @@ def write_json(destination: Path, payload):
     )
 
 
-def build_site(output: Path):
-    """Export exact preset-window results using the same functions as FastAPI.
+def validate_aggregate(snapshot):
+    """Fail closed on contradictory public summaries before deploying.
 
-    Custom date ranges stay on FastAPI, because averaging daily medians would
-    produce incorrect results. Generate each window against a fixed timestamp.
+    Daily, hourly and priority partitions cover the same selected rows.
+    Top-eight classifications are a subset. Data-quality denominators must
+    never exceed selected records, even for sparse priority filters.
     """
+    if snapshot.get("source_item_id") != SOURCE_ITEM_ID:
+        raise RuntimeError("Cleveland EMS source provenance mismatch")
+    records = snapshot.get("records")
+    if not isinstance(records, int) or records < 0:
+        raise RuntimeError("Invalid Cleveland published record count")
+    for field, key in (("daily", "count"), ("hours", "count"),
+                       ("priorities", "count")):
+        rows = snapshot.get(field)
+        if not isinstance(rows, list) or any(
+            not isinstance(row.get(key), int) or row[key] < 0 for row in rows
+        ) or sum(row[key] for row in rows) != records:
+            raise RuntimeError(f"Cleveland {field} aggregate totals disagree")
+    reason_total = snapshot.get("incident_reason_records")
+    excluded = snapshot.get("incident_type_excluded_count")
+    if (not isinstance(reason_total, int) or not isinstance(excluded, int)
+            or reason_total < 0 or excluded < 0
+            or reason_total + excluded != records):
+        raise RuntimeError("Cleveland incident reason denominator mismatch")
+    top = snapshot.get("incident_types")
+    if not isinstance(top, list) or len(top) > 8 or any(
+        not isinstance(row.get("count"), int) or row["count"] < 0
+        or not isinstance(row.get("type"), str)
+        or row.get("type", "").strip().upper() in {"NO DISPATCH", "UNCODED"}
+        for row in top
+    ) or sum(row["count"] for row in top) > reason_total:
+        raise RuntimeError("Cleveland incident-type aggregate totals disagree")
+    quality = snapshot.get("record_quality")
+    if not isinstance(quality, dict):
+        raise RuntimeError("Cleveland summary lacks field-quality information")
+    for label, count in quality.items():
+        if not isinstance(count, int) or count < 0 or count > records:
+            raise RuntimeError(f"Invalid Cleveland data quality count: {label}")
+    for label in ("transport_flag_known", "dispatch_flag_known"):
+        count = snapshot.get(label)
+        if not isinstance(count, int) or not 0 <= count <= records:
+            raise RuntimeError(f"Cleveland {label} denominator invalid")
+    return True
+
+
+def build_site(output: Path):
+    """Generate date/type aggregate snapshots from one time anchor and validated geography."""
     output = output.resolve()
     if output.exists() and any(output.iterdir()):
         raise ValueError(f"Output directory must be empty: {output}")
@@ -44,41 +86,96 @@ def build_site(output: Path):
         html.replace("<body>", '<body data-static-site="true">', 1), encoding="utf-8"
     )
     shutil.copytree(HERE / "static", output / "static", dirs_exist_ok=True)
-
-    # Cloudflare can cache the shell briefly; JSON changes after a daily deploy.
     (output / "_headers").write_text(
-        "/*\n"
-        "  X-Content-Type-Options: nosniff\n"
+        "/*\n  X-Content-Type-Options: nosniff\n"
         "  Referrer-Policy: strict-origin-when-cross-origin\n"
-        "/api/*\n"
-        "  Cache-Control: public, max-age=300, must-revalidate\n"
-        "/static/*\n"
-        "  Cache-Control: public, max-age=300, must-revalidate\n",
+        "/api/*\n  Cache-Control: public, max-age=300, must-revalidate\n"
+        "/static/*\n  Cache-Control: public, max-age=300, must-revalidate\n",
         encoding="utf-8",
     )
 
     now = datetime.now(timezone.utc)
+    boundaries = get_boundaries()
+    boundary_names = sorted({
+        str(f.get("properties", {}).get("name", "")).strip()
+        for f in boundaries.get("features", [])
+        if f.get("properties", {}).get("name")
+    })
+    if len(boundary_names) < 20:
+        raise RuntimeError("Cleveland boundary layer is missing or incomplete")
+
+    choices = common_incident_types()
+    if len(choices) < 3:
+        raise RuntimeError("Cleveland incident-type selector has too few source categories")
+    type_ids = ["all"] + [entry["id"] for entry in choices]
+    write_json(output / "api" / "incident-types.json", {
+        "types": choices,
+        "scope": "Ten most frequent recorded incident types across all imported dates",
+    })
+    first = summarize(window="30d", priority="all", incident_type="all", now=now)
+    if not first["records"] or not first["total_stored"]:
+        raise RuntimeError(
+            "No official Cleveland EMS records in the 30-day window. "
+            "Run the Cleveland-only ingestion, or inspect source freshness; "
+            "refusing to publish legacy Virginia Beach records."
+        )
+    if first["source_item_id"] != SOURCE_ITEM_ID:
+        raise RuntimeError("Cleveland EMS source provenance mismatch")
+
     for window in WINDOWS:
-        for priority in PRIORITIES:
-            stats = summarize(window=window, priority=priority, now=now)
-            if window == "30d" and priority == "all" and not stats["total_stored"]:
-                raise RuntimeError("Database is empty; refusing to deploy an empty dashboard")
+        for type_id in type_ids:
+            stats = first if (window, type_id) == ("30d", "all") else summarize(
+                window=window, priority="all", incident_type=type_id, now=now
+            )
+            validate_aggregate(stats)
             stats["snapshot_generated_at"] = now.isoformat()
-            write_json(output / "api" / "summary" / window / f"{priority}.json", stats)
+            write_json(output / "api" / "summary" / window / f"{type_id}.json", stats)
+            areas = area_summary(window=window, priority="all", incident_type=type_id, now=now,
+                                 known_neighborhoods=boundary_names)
+            # A map layer must describe the exact same selection as its
+            # citywide summary; never silently ship a denominator mismatch.
+            if (areas.get("eligible_records") != stats["records"] or
+                    areas.get("mapped_records", 0) +
+                    areas.get("unmapped_records", 0) != stats["records"]):
+                raise RuntimeError(
+                    f"Cleveland geography and citywide totals disagree: "
+                    f"window={window}, incident_type={type_id}"
+                )
+            if window == "30d" and type_id == "all":
+                coverage = areas.get("mapping_coverage_pct")
+                print(
+                    "Cleveland map QA: "
+                    f"status={areas['status']}, "
+                    f"mapped={areas['mapped_records']:,}/"
+                    f"{areas['eligible_records']:,}, coverage={coverage}%, "
+                    f"reportable_neighborhoods={len(areas['areas'])}, "
+                    f"top={[(a['name'], a['count']) for a in areas['areas'][:5]]}",
+                    flush=True,
+                )
+                if areas["status"] != "ready" or not areas["areas"]:
+                    raise RuntimeError(
+                        "No verified Cleveland neighborhoods can be mapped; "
+                        "refusing to deploy an empty geographic explorer."
+                    )
+            write_json(output / "api" / "areas" / window / f"{type_id}.json", areas)
 
-            areas = get_area_summary(window=window, priority=priority, now=now)
-            write_json(output / "api" / "areas" / window / f"{priority}.json", areas)
-
-    # Official neighborhood geometry only; no raw EMS locations or identifiers.
-    write_json(output / "api" / "neighborhood-boundaries.json", get_boundaries())
-    write_json(output / "api" / "build-info.json", {"generated_at": now.isoformat(), "mode": "precomputed"})
+    write_json(output / "api" / "neighborhood-boundaries.json", boundaries)
+    write_json(output / "api" / "build-info.json", {
+        "generated_at": now.isoformat(),
+        "mode": "Cleveland-only verified public aggregates",
+        "source_item_id": SOURCE_ITEM_ID,
+        "incident_type_ids": type_ids,
+    })
+    print(f"Built Cleveland-only site: {first['records']:,} records in 30d, "
+          f"{first['total_stored']:,} Cleveland records stored, "
+          f"{len(boundary_names)} official neighborhoods",flush=True)
     return output
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Export Cloudflare Pages static dashboard")
+    parser = argparse.ArgumentParser(description="Export verified Cleveland EMS site")
     parser.add_argument("--output", default="../site_build", help="Empty build output folder")
     args = parser.parse_args()
     if not os.environ.get("EMS_DATABASE_URL"):
-        parser.error("EMS_DATABASE_URL is required; export must read the existing Neon database")
-    print(f"Exported static dashboard to {build_site(Path(args.output))}", flush=True)
+        parser.error("EMS_DATABASE_URL is required to read the separate Cleveland database table")
+    print(f"Exported Cleveland EMS dashboard to {build_site(Path(args.output))}", flush=True)

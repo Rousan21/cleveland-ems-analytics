@@ -82,7 +82,7 @@ def test_audit_rejects_bad_limits_and_duplicate_rows():
 def test_public_dashboard_labels_are_record_based():
     from pathlib import Path
     html = (Path(__file__).resolve().parents[1] / 'templates' / 'index.html').read_text()
-    assert 'EMS dispatch records' in html
+    assert 'Published EMS records' in html
     assert 'not verified unique incidents' in html
 
 

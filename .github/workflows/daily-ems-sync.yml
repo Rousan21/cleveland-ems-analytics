@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
     inputs:
       full_history:
-        description: 'Backfill the entire city-published history? (may be large)'
+        description: 'Backfill up to 2,000 days of Cleveland city records? (large)'
         type: boolean
         default: false
 permissions:
@@ -46,15 +46,18 @@ jobs:
       - name: Install dependencies
         if: steps.check.outputs.skip != 'true'
         run: python -m pip install -r requirements.txt
-      - name: Import public EMS data
+      - name: Import verified Cleveland, Ohio EMS data
         if: steps.check.outputs.skip != 'true'
         env:
           FULL_HISTORY: ${{ inputs.full_history }}
         run: |
+          # Import ONLY City of Cleveland CAD EMS records; the prior Virginia
+          # Beach importer remains archived for historical code comparison.
           if [ "$FULL_HISTORY" = "true" ]; then
-            python ingest.py --all
+            python cleveland_pipeline.py sync --days 2000
           else
-            python ingest.py --days 30
+            python cleveland_pipeline.py bootstrap --days 400
+            python cleveland_pipeline.py sync --days 45
           fi
       - name: Check Cloudflare Pages configuration
         id: pages
