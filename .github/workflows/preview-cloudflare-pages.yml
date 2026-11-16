@@ -7,9 +7,7 @@ on:
       - '.github/workflows/preview-cloudflare-pages.yml'
 
 permissions:
-  # Allow the verified same-repository PR workflow to update checked-in
-  # screenshots after Chrome completes its assertions.
-  contents: write
+  contents: read
 
 concurrency:
   group: ems-preview-${{ github.event.pull_request.number }}
@@ -23,10 +21,6 @@ jobs:
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
-        with:
-          # Check out PR head, not GitHub's synthetic pull-request merge ref,
-          # so screenshot commits update the feature branch without merging.
-          ref: ${{ github.event.pull_request.head.ref }}
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -59,26 +53,6 @@ jobs:
           # Use immutable deployment URL to avoid stale branch-alias caching.
           PREVIEW_URL: ${{ steps.deploy.outputs.deployment-url || 'https://dashboard-v6-real-cleveland.cleveland-ems-explorer.pages.dev' }}
         run: python webapp/browser_map_audit.py --url "$PREVIEW_URL" --output map_browser_report
-      - name: Refresh README screenshots from tested Cloudflare preview
-        if: success() && github.head_ref == 'dashboard-v6-real-cleveland-data'
-        run: |
-          # Real, trusted Chrome screenshots: no fabricated maps or numbers.
-          test -s map_browser_report/desktop.png
-          test -s map_browser_report/desktop-incident-types.png
-          mkdir -p assets
-          cp map_browser_report/desktop.png assets/dashboard.png
-          cp map_browser_report/desktop-incident-types.png assets/incident-types.png
-          cp map_browser_report/desktop-overview.png assets/dashboard-overview.png
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add assets/dashboard.png assets/incident-types.png assets/dashboard-overview.png
-          if git diff --cached --quiet; then
-            echo "README screenshots already current"
-          else
-            git commit -m "docs: refresh screenshots from verified Cleveland EMS preview"
-            git push origin "HEAD:${{ github.head_ref }}"
-          fi
-
       - name: Save map preview screenshots
         if: always() && github.head_ref == 'dashboard-v6-real-cleveland-data'
         uses: actions/upload-artifact@v4
