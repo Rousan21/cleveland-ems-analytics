@@ -87,6 +87,12 @@ function renderInsights(data) {
       `${number(leading.count)} of ${number(total)} selected published rows (${percent(leading.count,total)}) carry this dispatch-time classification. This describes recorded call types, not diagnoses or patients.`;
   }
 
+  // Area results arrive separately. Avoid displaying a previous filter's
+  // geographic finding alongside the newly chosen citywide selection.
+  $('insight-area').textContent = 'Updating mapped neighborhoods…';
+  $('insight-area-detail').textContent = 'Checking geographic totals for this selection.';
+  $('quality-geo').textContent = '—';
+  $('quality-geo-detail').textContent = 'Awaiting matching geographic aggregates.';
   const quality = data.record_quality || {};
   function reportQuality(value, resultId, detailId, denominatorText) {
     const count = Number(value);
