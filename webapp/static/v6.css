@@ -142,3 +142,41 @@
   .reasons-context {display:grid;grid-template-columns:1fr}
   .reasons-context .reason-coverage {grid-row:auto;font-size:32px}
 }
+
+
+/* Findings are written as explanations with denominators, not decorative KPIs. */
+.interpretation-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:6px 0 16px}
+.interpretation-card{border:1px solid #315667;border-radius:14px;padding:23px 23px 21px;
+  background:linear-gradient(145deg,#143b46,#122838);min-width:0;display:grid;gap:11px;align-content:start}
+.interpretation-card:nth-child(2){background:linear-gradient(145deg,#1c344c,#122736)}
+.interpretation-card .overline{color:#77dfd0;letter-spacing:1.2px;font-size:9px}
+.interpretation-card h3{font:800 clamp(17px,2vw,25px)/1.25 Manrope,sans-serif;
+  color:#e7fafc;letter-spacing:-.4px;overflow-wrap:anywhere;margin:0}
+.interpretation-card p{font-size:12px;line-height:1.8;color:#a9c7d4;margin:0}
+.interpretation-caveat{font-size:10px;line-height:1.6;color:#7da4b5;
+  border-top:1px solid #315166;padding-top:12px;align-self:end}
+.quality-panel{background:#132737;border:1px solid #2e4a5e;border-radius:14px;
+  padding:21px 23px;margin-bottom:20px;display:grid;gap:17px}
+.quality-header{display:flex;justify-content:space-between;align-items:start;gap:14px;flex-wrap:wrap}
+.quality-header .overline{font-size:9px;letter-spacing:1.2px;color:#7dd7cd}
+.quality-header h3{font:800 17px/1.35 Manrope,sans-serif;margin:7px 0 0;color:#e4f4f9}
+.quality-snapshot{color:#95b3c1;font-size:10px;line-height:1.6}
+.quality-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:0;border-top:1px solid #2b4756;border-bottom:1px solid #2b4756}
+.quality-metrics>div{padding:16px 18px 15px 0;display:grid;gap:5px;min-width:0}
+.quality-metrics>div+div{border-left:1px solid #2b4756;padding-left:19px}
+.quality-metrics span{font-size:11px;font-weight:650;color:#b9cfda}
+.quality-metrics strong{font:800 24px/1.15 Manrope,sans-serif;color:#64ddc8}
+.quality-metrics small{font-size:10px;line-height:1.6;color:#87a6b5}
+.quality-explanation{color:#89a9b8;font-size:11px;line-height:1.8;margin:0}
+@media(max-width:800px){
+  .interpretation-grid{grid-template-columns:1fr}
+}
+@media(max-width:600px){
+  .interpretation-card{padding:18px 17px}
+  .quality-panel{padding:18px 16px}
+  .quality-metrics{grid-template-columns:1fr}
+  .quality-metrics>div{padding:13px 0}
+  .quality-metrics>div+div{border-left:0;border-top:1px solid #2b4756;padding:13px 0}
+  .quality-metrics strong{font-size:23px}
+}
