@@ -110,6 +110,23 @@ def diagnose(url, save_to):
             if incidents["rows"]<5 or not incidents["coverage"].endswith("%") or not incidents["removedWeakChart"] or "City of Cleveland" not in incidents["scope"]:
                 raise AssertionError(f"{label}: incident type chart missing, unscoped or incorrectly laid out: {incidents}")
 
+            evidence=page.evaluate("""() => ({
+              category:document.querySelector('#insight-category')?.textContent||'',
+              area:document.querySelector('#insight-area')?.textContent||'',
+              type:document.querySelector('#quality-types')?.textContent||'',
+              geographic:document.querySelector('#quality-geo')?.textContent||'',
+              transport:document.querySelector('#quality-transport')?.textContent||'',
+              scope:document.querySelector('#quality-explanation')?.textContent||'',
+              renderedQuality:Boolean(state.currentData?.record_quality)
+            })""")
+            print("EVIDENCE CHECK",label,json.dumps(evidence,sort_keys=True),flush=True)
+            if (not evidence["renderedQuality"] or
+                evidence["category"] in ("", "Reviewing incident classifications…") or
+                evidence["area"] in ("", "Checking neighborhood coverage…", "Updating mapped neighborhoods…") or
+                not all(evidence[k].endswith("%") for k in ("type", "geographic", "transport")) or
+                "do not prove" not in evidence["scope"]):
+                raise AssertionError(f"{label}: findings or evidence-quality panel incomplete: {evidence}")
+
             if trend["source"] != "d5d71757cc73400d843c98bcb46e46b6" or trend["plottedCount"] < 3:
                 raise AssertionError(f"{label}: wrong source or no daily trend: {trend}")
             if (trend["plottedFirst"] in trend["excluded"] or
