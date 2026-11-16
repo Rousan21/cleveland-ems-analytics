@@ -74,6 +74,7 @@
           </div>
           <label class="priority-select" for="incident-type">Incident type <select id="incident-type" aria-label="Filter by recorded Cleveland EMS incident type"><option value="all">All incident types</option></select></label>
         </div>
+        <p id="no-dispatch-explain" class="no-dispatch-explain" role="note" hidden><strong>About “NO DISPATCH”:</strong> This is the City's recorded incident classification, not proof that no unit was sent. The separate dispatch indicator can still be true.</p>
         <div id="custom-range" class="custom-range" hidden><label>From <input type="date" id="start-date"></label><label>Through <input type="date" id="end-date"></label><button id="apply-custom" type="button">Apply range</button></div>
         <div id="error-message" role="alert" class="error" hidden></div>
       </section>
@@ -100,7 +101,6 @@
         <div class="geo-body">
           <div class="geo-map-pane">
             <div id="map" role="region" aria-label="Interactive official Cleveland neighborhood map shaded by aggregate, source-matched EMS record counts. No patient locations."></div>
-            <div class="map-overlay-label"><span class="geo-overlay-dot"></span> CLEVELAND · OFFICIAL GIS</div>
             <div class="map-corner-legend"><span class="area-legend-swatch"></span> Neighborhood polygons <span class="legend-separator"></span> Brighter = higher published record count</div>
             <div id="map-status" class="map-caption" role="status">Loading official neighborhood outlines…</div>
           </div>

@@ -75,6 +75,18 @@ def diagnose(url, save_to):
                 raise AssertionError(f"{label}: Cleveland polygons missing or tiny: {result}")
             if result.get("loadedTiles",0)>0:
                 raise AssertionError(f"{label}: third-party map tiles returned; avoid API-key watermarks")
+            # Browser-level interaction check: no decorative GIS badge may
+            # overlap the upper-left Leaflet zoom controls (desktop or phone).
+            if page.locator('.map-overlay-label').count()!=0:
+                raise AssertionError(f"{label}: decorative map badge was not removed")
+            zoom_in = page.locator('#map .leaflet-control-zoom-in')
+            zoom_out = page.locator('#map .leaflet-control-zoom-out')
+            old_zoom = page.evaluate("state.map.getZoom()")
+            zoom_in.click(timeout=5000)
+            page.wait_for_function("(old) => state.map.getZoom() > old",arg=old_zoom,timeout=5000)
+            zoom_out.click(timeout=5000)
+            page.wait_for_function("(old) => state.map.getZoom() === old",arg=old_zoom,timeout=5000)
+            print("MAP ZOOM CONTROL",label,"clickable and unobstructed",flush=True)
             if page.locator('#geo-mapped-count').count()!=0:
                 raise AssertionError(f"{label}: GIS match is still a prominent metric")
             if 'GIS name matching:' not in page.locator('#geo-match-note').inner_text():
@@ -144,11 +156,26 @@ def diagnose(url, save_to):
                     filtered["total"]>=original_count or filtered["mapTotal"]!=filtered["total"] or
                     not filtered["chartHidden"] or filtered["mapRankings"]<1):
                 raise AssertionError(f"{label}: incident filter did not update the whole dashboard: {filtered}")
+            # "NO DISPATCH" is an incident-type label, not a reliable
+            # claim that isDispatch=false. Explain only for that selection.
+            no_dispatch = selector.locator('option',has_text='NO DISPATCH')
+            if no_dispatch.count():
+                selector.select_option(label="NO DISPATCH")
+                page.wait_for_function(
+                    "() => state.currentData?.selected_incident_type === 'NO DISPATCH'",
+                    timeout=30000
+                )
+                note=page.locator('#no-dispatch-explain')
+                if not note.is_visible() or 'not proof' not in note.inner_text():
+                    raise AssertionError(f"{label}: NO DISPATCH caveat missing")
+                print("NO DISPATCH NOTE",label,"visible",flush=True)
             selector.select_option("all")
             page.wait_for_function(
                 "() => state.currentData?.incident_type === 'all' && state.areaData?.eligible_records === state.currentData?.records",
                 timeout=30000
             )
+            if page.locator('#no-dispatch-explain').is_visible():
+                raise AssertionError(f"{label}: NO DISPATCH caveat remained after clearing filter")
 
             if trend["source"] != "d5d71757cc73400d843c98bcb46e46b6" or trend["plottedCount"] < 3:
                 raise AssertionError(f"{label}: wrong source or no daily trend: {trend}")

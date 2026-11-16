@@ -131,6 +131,10 @@ function renderSummary(data) {
     throw new Error('Wrong EMS data source. Refusing to display non-Cleveland statistics.');
   }
   state.currentData = data;
+  // Source incident category labels describe CAD records, not a measured
+  // dispatch outcome. The separate isDispatch field is authoritative for
+  // the "unit dispatched" indicator; they can legitimately differ.
+  $('no-dispatch-explain').hidden = data.selected_incident_type !== 'NO DISPATCH';
   $('total-calls').textContent = number(data.records);
   const rate = (part, valid) => valid > 0 ? percent(part, valid) : 'N/A';
   $('dispatch-share').textContent = rate(data.dispatched_count, data.dispatch_flag_known);

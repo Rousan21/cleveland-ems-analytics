@@ -130,10 +130,6 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
   box-shadow:0 5px 25px rgba(0,0,0,.25);padding:7px 10px;font:700 11px 'DM Sans',sans-serif}
 #map .leaflet-tooltip:before{border-top-color:#3d7181}
 #map .leaflet-div-icon{border:0;background:none}
-.map-overlay-label{position:absolute;left:16px;top:17px;z-index:400;color:#8bb4c2;
-  background:rgba(8,22,34,.82);border:1px solid rgba(104,167,176,.28);border-radius:8px;
-  padding:9px 11px;font-size:9px;letter-spacing:1.2px;font-weight:800;pointer-events:none}
-.geo-overlay-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:#50d9bf;margin-right:6px}
 .map-corner-legend{position:absolute;bottom:43px;left:15px;z-index:400;background:rgba(9,25,37,.91);
   border:1px solid #365267;border-radius:9px;padding:11px 12px;color:#b8ceda;font-size:10px;
   display:flex;align-items:center;gap:8px;pointer-events:none}
