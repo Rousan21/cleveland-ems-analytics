@@ -4,9 +4,13 @@
 
 [Explore the v6 preview](https://dashboard-v6-real-cleveland.cleveland-ems-explorer.pages.dev/) · [Official City of Cleveland dataset](https://www.arcgis.com/home/item.html?id=d5d71757cc73400d843c98bcb46e46b6) · [Source code and setup](webapp/) · [GitHub Actions](https://github.com/Rousan21/cleveland-ems-analytics/actions)
 
-![Cleveland EMS geographic explorer — actual Cloudflare preview](assets/dashboard.png)
+![Cleveland EMS Analytics — verified dashboard overview](assets/dashboard-overview.png)
 
-*Screenshot from the live v6 preview: city neighborhoods shaded by published EMS record volume, with a ranked geographic explorer.*
+*Verified browser screenshot of the v6 dashboard's introduction, filters, and source-based KPIs (November 15, 2026).*
+
+![Cleveland EMS geographic explorer — source-matched neighborhoods](assets/dashboard.png)
+
+*The interactive geographic explorer: Cleveland neighborhoods shaded by published EMS record volume, with rankings and geographic match coverage.*
 
 > **Release status:** v6 is currently in [Pull Request #10](https://github.com/Rousan21/cleveland-ems-analytics/pull/10). It has passed automated and browser tests but **has not been merged into `main`**. The production URL may still display an older prototype that used an incorrect Virginia Beach source. Do not interpret earlier production statistics as Cleveland findings.
 
@@ -88,7 +92,9 @@ Static builds precompute **48 date/priority selections** to avoid repeated datab
 
 ```bash
 git clone https://github.com/Rousan21/cleveland-ems-analytics.git
-cd cleveland-ems-analytics/webapp
+cd cleveland-ems-analytics
+git switch dashboard-v6-real-cleveland-data  # until PR #10 is merged
+cd webapp
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
