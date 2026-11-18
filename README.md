@@ -28,7 +28,7 @@ I built Cleveland EMS Analytics as a practical, end-to-end data project: from pu
 
 ![Top dispatch classifications and their shares of Cleveland EMS records](assets/incident-types.png)
 
-*The citywide incident-reason chart appears with All incident types. It excludes ambiguous “NO DISPATCH” and uncoded classifications from the **reason percentages only**. All source records still contribute to the overall count and transport indicators. Selecting one of the ten leading usable source classifications filters the map, daily trend and metrics together. Selecting a neighborhood instead updates the map's geographic detail, not the citywide charts. Labels reflect dispatch-time classifications, **not medical diagnoses**.*
+*The citywide incident-reason chart appears with All incident types. Selecting one of the ten leading usable source classifications filters the map, daily trend and metrics together. Selecting a neighborhood instead updates the map's geographic detail, not the citywide charts. Labels reflect dispatch-time classifications, **not medical diagnoses**.*
 
 ## Example finding: dispatch classifications and time of day
 
